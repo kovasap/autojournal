@@ -85,30 +85,19 @@ def main():
     food_pictures = photos_api_instance.get_album_contents(
         photos_api_instance.get_album_id('Food!'))
 
-    # pprint(food_pictures)
     food_events = [photo_to_event(photo) for photo in food_pictures]
-
-    food_events = [photo_to_event(food_pictures[-1])]
 
     cal_api_instance = calendar_api.CalendarApi(creds)
     food_calendar_id = cal_api_instance.get_calendar_id('Food')
+
     # Filter out all food items that have already been added to the calendar.
     existing_events = cal_api_instance.get_events(food_calendar_id)
-
-    pprint(existing_events)
-    print()
-    pprint(food_events)
-
     new_food_events = list(filter(
         lambda query: all(not is_subset(ref, query) for ref in existing_events),
         food_events))
 
     print(f'Adding {len(new_food_events)} new food events...')
-
-    # cal_api_instance.add_events(food_calendar_id, new_food_events)
-
-    # pprint(cal_api_instance.get_latest_events(
-    #     'mgf5ho48h2a65185npg79tuvqc@group.calendar.google.com', 10))
+    cal_api_instance.add_events(food_calendar_id, new_food_events)
 
 
 if __name__ == '__main__':
