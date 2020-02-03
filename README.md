@@ -9,5 +9,5 @@ Add this command to run every day at 11am, assuming you installed this script
 using the `photos_calendar_sync` virtualenv.
 
 ```
-0 11 * * * /home/kovas/.virtualenvs/photos_calendar_sync/bin/python /home/kovas/photos_calendar_sync/photos_calendar_syncer.py >> /home/kovas/photos_calendar_sync/photos_calendar_sync_cron.log
+0 11 * * * cd /home/kovas/photos_calendar_sync && /home/kovas/.virtualenvs/photos_calendar_sync/bin/python photos_calendar_syncer.py >> photos_calendar_sync_cron.log
 ```
