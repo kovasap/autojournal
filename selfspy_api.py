@@ -2,7 +2,6 @@ import os
 import copy
 from typing import List, Any
 from datetime import datetime, timedelta
-from pprint import pprint
 from dateutil import tz
 from collections import namedtuple
 from dataclasses import dataclass
@@ -13,6 +12,7 @@ from selfspy.modules import models, config as cfg
 from selfspy.stats import create_times
 
 import calendar_api
+import utils
 
 
 ActionTiming = namedtuple('ActionTiming', [
@@ -67,6 +67,9 @@ def get_session_group_description(sessions: List[WindowSession], long=True):
         action_summary += f'{v} {k} ({round(v / 60, 2)} {k} per minute)\n'
     total_mins = round(sum([s.get_total_time().total_seconds()
                             for s in unique_sessions]) / 60, 2)
+    # Round up to at least 0.01 to avoid div by zero errors.
+    if total_mins == 0:
+        total_mins = 0.01
     if long:
         return f"""Session lasted {total_mins} minutes.
 
@@ -132,30 +135,6 @@ def get_window_sessions(db_name):
     return window_sessions
 
 
-def split_on_gaps(values, threshold, key=lambda o: o, last_key=None):
-    """
-
-    >>> split_on_gaps([1,2,3,4,8,9,10], 2)
-    [[1, 2, 3, 4], [8, 9, 10]]
-    """
-    if last_key is None:
-        last_key = key
-    last_val = None
-    split_points = []
-    for i, orig_value in enumerate(values):
-        value = key(orig_value)
-        if last_val is not None and (value - last_val) > threshold:
-            split_points.append(i)
-        last_val = last_key(orig_value)
-    if split_points:
-        split_points.insert(0, 0)
-        split_points.append(len(values))
-        return [values[split_points[i]:split_points[i+1]]
-                for i in range(len(split_points) - 1)]
-    else:
-        return [values]
-
-
 def combine_sessions(window_sessions):
     """Takes all window sessions in input with same title and merges them into a
     new session with all their action_timings.
@@ -179,7 +158,7 @@ def get_events_from_sessions(window_sessions, idle_time):
     # sessions, each containing activity (clicks/keystrokes).
     active_sessions = []
     for window_session in window_sessions:
-        new_timings = split_on_gaps(
+        new_timings = utils.split_on_gaps(
             window_session.action_timings, idle_time, key=lambda t: t.time)
         for timings in new_timings:
             active_sessions.append(WindowSession(
@@ -189,22 +168,22 @@ def get_events_from_sessions(window_sessions, idle_time):
 
     # Group window sessions into chunks, where each chunk contains a continuous
     # period of activity, with no inactivity longer than idle_time.
-    grouped_sessions = split_on_gaps(
+    grouped_sessions = utils.split_on_gaps(
         active_sessions, idle_time,
         key=lambda s: s.action_timings[0].time,
         last_key=lambda s: s.action_timings[-1].time)
 
-    for sessions in grouped_sessions:
-        print(get_session_group_description(sessions, long=False))
-        print(get_session_group_description(sessions))
-        print('------------------------------------------------------')
+    # for sessions in grouped_sessions:
+    #     print(get_session_group_description(sessions, long=False))
+    #     print(get_session_group_description(sessions))
+    #     print('------------------------------------------------------')
 
     return [make_cal_event_from_session_group(sessions)
             for sessions in grouped_sessions]
 
 
 def get_selfspy_usage_events(session_limit=None,
-                             idle_seconds=120) -> List[calendar_api.Event]:
+                             idle_seconds=60 * 5) -> List[calendar_api.Event]:
     db_name = os.path.expanduser(os.path.join(cfg.DATA_DIR, cfg.DBNAME))
     window_sessions = get_window_sessions(db_name)
     if session_limit:

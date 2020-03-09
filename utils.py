@@ -56,3 +56,30 @@ def is_subset(ref: dict, query: dict) -> bool:
             if not value == ref[key]:
                 return False
     return True
+
+
+def split_on_gaps(values, threshold, key=lambda o: o, last_key=None):
+    """
+
+    >>> split_on_gaps([1,2,3,4,8,9,10], 2)
+    [[1, 2, 3, 4], [8, 9, 10]]
+    """
+    if last_key is None:
+        last_key = key
+    last_val = None
+    split_points = []
+    for i, orig_value in enumerate(values):
+        value = key(orig_value)
+        if last_val is not None and (value - last_val) > threshold:
+            split_points.append(i)
+        last_val = last_key(orig_value)
+    if split_points:
+        split_points.insert(0, 0)
+        split_points.append(len(values))
+        return [values[split_points[i]:split_points[i+1]]
+                for i in range(len(split_points) - 1)]
+    else:
+        return [values]
+
+
+

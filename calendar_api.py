@@ -1,7 +1,8 @@
-import datetime
 from typing import List, Iterable
-import functools
 from googleapiclient.discovery import build
+from pprint import pprint
+
+import utils
 
 # https://developers.google.com/calendar/v3/reference/events
 Event = dict
@@ -35,8 +36,25 @@ class CalendarApi(object):
         assert len(matches) == 1
         return matches[0]
 
-    def add_events(self, calendar_id: str, events: Iterable[Event]):
+    def add_events(self, calendar_name: str,
+                   events: Iterable[Event],
+                   skip_existing_events: bool = True,
+                   dry_run: bool = False):
+        calendar_id = self.get_calendar_id(calendar_name)
+        if skip_existing_events:
+            existing_events = self.get_events(calendar_id)
+            events = [
+                e for e in events
+                if all(not utils.is_subset(ref, e) for ref in existing_events)]
+
+        if dry_run:
+            print('DRY RUN')
+        print(f'Adding {len(events)} new events to {calendar_name}...')
         for event in events:
-            response = self.service.events().insert(
-                calendarId=calendar_id, body=event).execute()
-            print(f'Added event {response}')
+            if dry_run:
+                pprint(event)
+                print('------------------------------------')
+            else:
+                response = self.service.events().insert(
+                    calendarId=calendar_id, body=event).execute()
+                print(f'Added event {response}')
