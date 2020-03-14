@@ -1,6 +1,7 @@
 from typing import List, Iterable
+from datetime import datetime
 from googleapiclient.discovery import build
-from pprint import pprint
+from pprint import pprint, pformat
 
 import utils
 
@@ -39,7 +40,8 @@ class CalendarApi(object):
     def add_events(self, calendar_name: str,
                    events: Iterable[Event],
                    skip_existing_events: bool = True,
-                   dry_run: bool = False):
+                   dry_run: bool = False,
+                   start_datetime: datetime = None):
         calendar_id = self.get_calendar_id(calendar_name)
         if skip_existing_events:
             existing_events = self.get_events(calendar_id)
@@ -51,10 +53,13 @@ class CalendarApi(object):
             print('DRY RUN')
         print(f'Adding {len(events)} new events to {calendar_name}...')
         for event in events:
+            if (datetime.fromisoformat(event['start']['dateTime'])
+                    < start_datetime):
+                continue
             if dry_run:
                 pprint(event)
                 print('------------------------------------')
             else:
                 response = self.service.events().insert(
                     calendarId=calendar_id, body=event).execute()
-                print(f'Added event {response}')
+                print(f'Added event {pformat(response)}')

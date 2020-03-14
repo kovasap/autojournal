@@ -1,5 +1,6 @@
 from functools import reduce
 from datetime import timedelta, datetime
+from dateutil import tz
 
 import credentials
 import photos_api
@@ -34,6 +35,12 @@ def main():
 
     cal_api_instance = calendar_api.CalendarApi(creds)
 
+    add_events_args = dict(
+        dry_run=False,
+        start_datetime=datetime(
+            month=3, day=5, year=2020, tzinfo=tz.gettz('PST')),
+    )
+
     """
     # Add food events from Google Photos
     photos_api_instance = photos_api.PhotosApi(creds)
@@ -61,7 +68,7 @@ def main():
         reduce(list.__add__, [v for k, v in android_activity_files.items()
                               if 'Activity' in k]))
     cal_api_instance.add_events('Android Activity', android_events,
-                                dry_run=True)
+                                **add_events_args)
 
 
 if __name__ == '__main__':
