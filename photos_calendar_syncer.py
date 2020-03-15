@@ -42,10 +42,10 @@ def main():
             month=3, day=5, year=2020, tzinfo=tz.gettz('PST')),
     )
 
-    calendars = ['Food', 'Laptop Activity', 'Android Activity',
-                 'Locations and Travel']
-    for c in calendars:
-        cal_api_instance.clear_calendar(c)
+    # calendars = ['Food', 'Laptop Activity', 'Android Activity',
+    #              'Locations and Travel']
+    # for c in calendars:
+    #     cal_api_instance.clear_calendar(c)
 
     # # Add food events from Google Photos
     # photos_api_instance = photos_api.PhotosApi(creds)
