@@ -37,6 +37,16 @@ class CalendarApi(object):
         assert len(matches) == 1
         return matches[0]
 
+    def clear_calendar(self, calendar_name: str):
+        calendar_id = self.get_calendar_id(calendar_name)
+        events = self.get_events(calendar_id)
+        print(f'Clearing {len(events)} events from {calendar_name}...')
+        for i, e in enumerate(events):
+            self.service.events().delete(calendarId=calendar_id,
+                                         eventId=e['id']).execute()
+            print(i, end='\r')
+        print()
+
     def add_events(self, calendar_name: str,
                    events: Iterable[Event],
                    skip_existing_events: bool = True,
@@ -53,7 +63,8 @@ class CalendarApi(object):
             print('DRY RUN')
         print(f'Adding {len(events)} new events to {calendar_name}...')
         for event in events:
-            if (datetime.fromisoformat(event['start']['dateTime'])
+            if (start_datetime is not None and
+                    datetime.fromisoformat(event['start']['dateTime'])
                     < start_datetime):
                 continue
             if dry_run:

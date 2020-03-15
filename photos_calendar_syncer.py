@@ -8,6 +8,7 @@ import selfspy_api
 import calendar_api
 import drive_api
 import app_usage_output_parser
+import maps_data_parser
 import utils
 
 
@@ -41,23 +42,27 @@ def main():
             month=3, day=5, year=2020, tzinfo=tz.gettz('PST')),
     )
 
-    """
-    # Add food events from Google Photos
-    photos_api_instance = photos_api.PhotosApi(creds)
-    food_pictures = photos_api_instance.get_album_contents(
-        photos_api_instance.get_album_id('Food!'))
-    # Collapse multiple food pictures taken within 30 mins to one food event.
-    grouped_photos = utils.split_on_gaps(
-        food_pictures, threshold=timedelta(minutes=30),
-        key=lambda photo: datetime.fromisoformat(
-            photo['mediaMetadata']['creationTime'].rstrip('Z')))
-    food_events = [photos_to_event(photos) for photos in grouped_photos]
-    cal_api_instance.add_events('Food', food_events)
+    calendars = ['Food', 'Laptop Activity', 'Android Activity',
+                 'Locations and Travel']
+    for c in calendars:
+        cal_api_instance.clear_calendar(c)
+
+    # # Add food events from Google Photos
+    # photos_api_instance = photos_api.PhotosApi(creds)
+    # food_pictures = photos_api_instance.get_album_contents(
+    #     photos_api_instance.get_album_id('Food!'))
+    # # Collapse multiple food pictures taken within 30 mins to one food event.
+    # grouped_photos = utils.split_on_gaps(
+    #     food_pictures, threshold=timedelta(minutes=30),
+    #     key=lambda photo: datetime.fromisoformat(
+    #         photo['mediaMetadata']['creationTime'].rstrip('Z')))
+    # food_events = [photos_to_event(photos) for photos in grouped_photos]
+    # cal_api_instance.add_events('Food', food_events)
 
     # Add laptop activity from selfspy
     laptop_events = selfspy_api.get_selfspy_usage_events()
-    cal_api_instance.add_events('Laptop Activity', laptop_events)
-    """
+    cal_api_instance.add_events('Laptop Activity', laptop_events,
+                                **add_events_args)
 
     # Add phone events from Google Drive
     drive_api_instance = drive_api.DriveApi(creds)
@@ -68,6 +73,16 @@ def main():
         reduce(list.__add__, [v for k, v in android_activity_files.items()
                               if 'Activity' in k]))
     cal_api_instance.add_events('Android Activity', android_events,
+                                **add_events_args)
+
+    # Add locations and travel from Google Maps Location History.
+    # Currently, we get the files with this data from Google Drive.
+    drive_api_instance = drive_api.DriveApi(creds)
+    maps_location_history_files = drive_api_instance.read_files(
+        directory='maps-location-history')
+    location_events = maps_data_parser.parse_semantic_location_history(
+        maps_location_history_files)
+    cal_api_instance.add_events('Locations and Travel', location_events,
                                 **add_events_args)
 
 

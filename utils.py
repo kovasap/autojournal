@@ -3,6 +3,17 @@ from datetime import datetime, timedelta
 from dateutil import tz
 
 
+def timestamp_ms_to_event_time(timestamp_ms: int,
+                               timezone_name='America/Los_Angeles'
+                               ) -> Dict[str, str]:
+    t = datetime.fromtimestamp(timestamp_ms / 1000).replace(
+        tzinfo=tz.gettz(timezone_name))
+    return dict(
+        dateTime=t.isoformat(),
+        timeZone=timezone_name,
+    )
+
+
 def utc_to_timezone(utc_time: str,
                     timezone_name: str = 'America/Los_Angeles',
                     additional_offset_mins: int = 0,
