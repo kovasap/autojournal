@@ -70,6 +70,8 @@ def get_session_group_description(sessions: List[WindowSession], long=True):
     # Round up to at least 0.01 to avoid div by zero errors.
     if total_mins == 0:
         total_mins = 0.01
+    # TODO rank windows both by time used AND by keystrokes/mouse actions
+    # within.
     if long:
         return f"""Session lasted {total_mins} minutes.
 
