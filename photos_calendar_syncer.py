@@ -60,9 +60,9 @@ def main():
     # cal_api_instance.add_events('Food', food_events)
 
     # Add laptop activity from selfspy
-    laptop_events = selfspy_api.get_selfspy_usage_events()
-    cal_api_instance.add_events('Laptop Activity', laptop_events,
-                                **add_events_args)
+    # laptop_events = selfspy_api.get_selfspy_usage_events()
+    # cal_api_instance.add_events('Laptop Activity', laptop_events,
+    #                             **add_events_args)
 
     # Add phone events from Google Drive
     drive_api_instance = drive_api.DriveApi(creds)
@@ -71,19 +71,19 @@ def main():
     android_events = app_usage_output_parser.create_events(
         # Combine all "Activity" csvs in directory into single datastream.
         reduce(list.__add__, [v for k, v in android_activity_files.items()
-                              if 'Activity' in k]))
+                              if 'usage_events' in k]))
     cal_api_instance.add_events('Android Activity', android_events,
                                 **add_events_args)
 
     # Add locations and travel from Google Maps Location History.
     # Currently, we get the files with this data from Google Drive.
-    drive_api_instance = drive_api.DriveApi(creds)
-    maps_location_history_files = drive_api_instance.read_files(
-        directory='maps-location-history')
-    location_events = maps_data_parser.parse_semantic_location_history(
-        maps_location_history_files)
-    cal_api_instance.add_events('Locations and Travel', location_events,
-                                **add_events_args)
+    # drive_api_instance = drive_api.DriveApi(creds)
+    # maps_location_history_files = drive_api_instance.read_files(
+    #     directory='maps-location-history')
+    # location_events = maps_data_parser.parse_semantic_location_history(
+    #     maps_location_history_files)
+    # cal_api_instance.add_events('Locations and Travel', location_events,
+    #                             **add_events_args)
 
 
 if __name__ == '__main__':

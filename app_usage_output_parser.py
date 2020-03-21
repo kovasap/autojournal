@@ -11,47 +11,9 @@ import calendar_api
 import utils
 
 
-@dataclass(frozen=True)
-class AppUsage:
-    """Encodes a raw phone app usage."""
-    start_time: datetime
-    duration: timedelta
-    app_name: str
-
-
-def get_app_usages_from_lines(csv_lines):
-    reader = csv.DictReader(csv_lines)
-    # Convert times to datetime and get rid of non-data lines.  Also skip
-    # repeated lines.
-    existing_usages = set()
-    app_usages = []
-    for row in reader:
-        # Ignore lines with no data or lines indicating the end of a session.
-        if None in row.values():
-            continue
-        start_time = datetime.strptime(
-            f"{row['Date']} {row['Time']}", '%m/%d/%y %I:%M:%S %p')
-        # Make sure that all times are unique, so in sorting nothing gets
-        # rearranged.  This PROBABLY keeps the initial order, but might still
-        # be a bit buggy.
-        if app_usages and start_time == app_usages[-1].start_time:
-            start_time -= timedelta(seconds=1)
-        cur_usage = AppUsage(
-            start_time=start_time.replace(tzinfo=tz.gettz('PST')),
-            duration=(datetime.strptime(row['Duration'], '%H:%M:%S')
-                      - datetime.strptime('00:00:00', '%H:%M:%S')),
-            app_name=row['App name'],
-        )
-        if cur_usage not in existing_usages:
-            app_usages.append(cur_usage)
-            existing_usages.add(cur_usage)
-    app_usages.sort(key=lambda usage: usage.start_time)
-    return app_usages
-
-
 @dataclass
 class PhoneSession:
-    """Phone usage session, starting from unlocking the phone to locking it."""
+    """Phone usage session"""
     start_time: datetime = None
     end_time: datetime = None
     # Map from app name to the total time it was used in this session.
@@ -92,6 +54,43 @@ class PhoneSession:
         )
 
 
+def get_app_usages_from_usage_history_app_export_lines(csv_lines):
+    """Parses export data from
+    https://play.google.com/store/apps/details?id=com.huybn.UsageHistory
+    """
+    reader = csv.DictReader(csv_lines)
+    # Convert times to datetime and get rid of non-data lines.  Also skip
+    # repeated lines.
+    parsed_rows = set()
+    app_usages = []
+    for row in reader:
+        # Ignore header lines from concatenating multiple csvs
+        if list(row.keys()) == list(row.values()):
+            continue
+        # Ignore duplicate rows.
+        row_tuple = tuple(row.values())
+        if row_tuple in parsed_rows:
+            continue
+        parsed_rows.add(row_tuple)
+        # Get time from row data.
+        use_time = datetime.fromtimestamp(
+            int(row['Time in ms']) / 1000).replace(tzinfo=tz.gettz('PST'))
+        # Make sure that all times are unique, so in sorting nothing gets
+        # rearranged.  This PROBABLY keeps the initial order, but might still
+        # be a bit buggy.
+        if app_usages and use_time == app_usages[-1].start_time:
+            use_time -= timedelta(seconds=1)
+        cur_usage = PhoneSession(
+            start_time=use_time,
+            end_time=use_time,
+        )
+        cur_usage.summed_usages[row['\ufeff\"App name\"']] += timedelta(
+            seconds=float(row['Duration (s)']))
+        app_usages.append(cur_usage)
+    app_usages.sort(key=lambda usage: usage.start_time)
+    return app_usages
+
+
 def unify_sessions(sessions):
     def join_summed_usages(su1, su2):
         new = copy.deepcopy(su1)
@@ -108,22 +107,6 @@ def unify_sessions(sessions):
     return unified
 
 
-def make_sessions_from_usages(app_usages):
-    sessions = []
-    cur_session = None
-    for usage in app_usages:
-        if cur_session is None:
-            cur_session = PhoneSession(start_time=usage.start_time)
-        elif (cur_session is not None
-              and usage.app_name == 'Screen off (locked)'):
-            cur_session.end_time = usage.start_time
-            sessions.append(cur_session)
-            cur_session = None
-        else:
-            cur_session.summed_usages[usage.app_name] += usage.duration
-    return sessions
-
-
 def collapse_all_sessions(sessions, idle_mins=20):
     return [unify_sessions(s) for s in utils.split_on_gaps(
         sessions, timedelta(minutes=idle_mins),
@@ -131,7 +114,6 @@ def collapse_all_sessions(sessions, idle_mins=20):
 
 
 def create_events(csv_lines):
-    app_usages = get_app_usages_from_lines(csv_lines)
-    sessions = collapse_all_sessions(make_sessions_from_usages(app_usages),
-                                     idle_mins=20)
+    app_usages = get_app_usages_from_usage_history_app_export_lines(csv_lines)
+    sessions = collapse_all_sessions(app_usages, idle_mins=20)
     return [ps.to_calendar_event() for ps in sessions]
