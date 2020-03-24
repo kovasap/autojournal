@@ -38,12 +38,16 @@ def main():
 
     add_events_args = dict(
         dry_run=False,
-        start_datetime=datetime(
-            month=3, day=5, year=2020, tzinfo=tz.gettz('PST')),
+        # start_datetime=datetime(
+        #     month=3, day=21, year=2020, tzinfo=tz.gettz('PST')),
     )
 
-    # calendars = ['Food', 'Laptop Activity', 'Android Activity',
-    #              'Locations and Travel']
+    # calendars = [
+    #     # 'Laptop Activity',
+    #     'Android Activity',
+    #     # 'Locations and Travel',
+    #     # 'Food',
+    # ]
     # for c in calendars:
     #     cal_api_instance.clear_calendar(c)
 
@@ -75,8 +79,8 @@ def main():
     cal_api_instance.add_events('Android Activity', android_events,
                                 **add_events_args)
 
-    # Add locations and travel from Google Maps Location History.
-    # Currently, we get the files with this data from Google Drive.
+    # # Add locations and travel from Google Maps Location History.
+    # # Currently, we get the files with this data from Google Drive.
     # drive_api_instance = drive_api.DriveApi(creds)
     # maps_location_history_files = drive_api_instance.read_files(
     #     directory='maps-location-history')

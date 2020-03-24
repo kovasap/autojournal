@@ -93,4 +93,17 @@ def split_on_gaps(values, threshold, key=lambda o: o, last_key=None):
         return [values]
 
 
-
+def strfdelta(tdelta):
+    """Creates formatted string for timedelta objects."""
+    days = tdelta.days
+    hours, rem = divmod(tdelta.seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    s = ''
+    if days:
+        s += f'{days}d '
+    if hours:
+        s += f'{hours}h '
+    if minutes:
+        s += f'{minutes}m '
+    s += f'{seconds}s'
+    return s
