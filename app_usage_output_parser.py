@@ -188,14 +188,14 @@ def unify_sessions(sessions):
                              [s.summed_usages for s in sessions]),
         checks=sum([s.checks for s in sessions]),
     )
-    try:
-        unified.to_calendar_event()
-    except:
-        for s in sessions:
-            print(s.start_time.strftime('%M %S'))
-            for k, v in s.summed_usages.items():
-                print(k, utils.strfdelta(v))
-        print(unified.to_calendar_event())
+    # try:
+    #     unified.to_calendar_event()
+    # except:
+    #     for s in sessions:
+    #         print(s.start_time.strftime('%M %S'))
+    #         for k, v in s.summed_usages.items():
+    #             print(k, utils.strfdelta(v))
+    #     print(unified.to_calendar_event())
     return unified
 
 
