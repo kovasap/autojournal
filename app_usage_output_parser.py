@@ -12,6 +12,9 @@ import calendar_api
 import utils
 
 
+# See also http://lightonphiri.org/blog/quantifying-my-phone-usage-android-applications-usage-statistics
+
+
 @dataclass
 class PhoneSession:
     """Phone usage session"""

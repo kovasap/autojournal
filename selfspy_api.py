@@ -73,6 +73,18 @@ def get_total_time_of_sessions_str(sessions: List[WindowSession]):
         timedelta(seconds=get_total_time_of_sessions(sessions)))
 
 
+def remove_urls(s):
+    return re.sub(r'http\S+', '', s)
+
+
+def remove_redundancy(string):
+    redundants = [
+        ' - Google Chrome',
+        '/google/src/cloud/kovas/chamber_regression_replication/',
+    ]
+    return reduce(lambda s, r: s.replace(r, ''), redundants, string)
+
+
 def get_session_group_description(sessions: List[WindowSession], long=True):
     unique_sessions = defaultdict(list)
     for s in sessions:
@@ -99,20 +111,23 @@ Windows used ({len(sessions)} total switches):
 
 """
         for title, ss in unique_sessions:
+            title = remove_redundancy(title)
             actions = reduce(
                 lambda d1, d2: {k: d1[k] + d2[k] for k in d1.keys()},
                 [s.get_total_actions_by_type() for s in ss])
-            actions_str = ', '.join([f'{v} {k}' for k, v in actions.items()])
-            desc += (f'{get_total_time_of_sessions_str(ss)} : {title} '
-                     f'--- {actions_str}\n')
+            actions_str = ', '.join(
+                [f'{v} {k}' for k, v in actions.items()]
+            ).replace('keystrokes', 'k').replace('clicks', 'c').replace(
+                'mouse_moves', 'm')  # Save some characters
+            row = (f'{get_total_time_of_sessions_str(ss)} : {title} '
+                   f'--- {actions_str}\n')
+            if (len(desc) + len(row)
+                    > calendar_api.EVENT_DESCRIPTION_LENGTH_LIMIT):
+                break
+            desc += row
         return desc
     else:
         # Get events that make up majority of time in session
-        def title_shortener(t):
-            """Removes bulky and non-information-rich elements from title."""
-            return re.sub(r'http\S+', '',
-                          t.replace(' - Google Chrome', '')
-                           .replace('\n', ' '))
         top_session_titles = []
         percent_left = 100
         total_secs = get_total_time_of_sessions(sessions)
@@ -120,7 +135,8 @@ Windows used ({len(sessions)} total switches):
         if total_secs == 0:
             total_secs = 0.01
         for title, ss in unique_sessions:
-            top_session_titles.append(title_shortener(title))
+            top_session_titles.append(remove_urls(remove_redundancy(
+                title.replace('\n', ' '))))
             percent_left -= (get_total_time_of_sessions(ss) / total_secs) * 100
             if percent_left < 25:
                 break

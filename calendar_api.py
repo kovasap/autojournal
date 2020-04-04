@@ -1,8 +1,9 @@
-from typing import List, Iterable
+from typing import List, Iterable, Callable
 from datetime import datetime
 from googleapiclient.discovery import build
 from pprint import pprint, pformat
 import json
+import difflib
 
 import utils
 
@@ -10,6 +11,9 @@ import utils
 Event = dict
 # https://developers.google.com/calendar/v3/reference/calendarList
 CalendarList = dict
+
+
+EVENT_DESCRIPTION_LENGTH_LIMIT = 8100  # characters
 
 
 class CalendarApi(object):
@@ -44,31 +48,31 @@ class CalendarApi(object):
         assert len(matches) == 1
         return matches[0]
 
-    def clear_calendar(self, calendar_name: str):
+    def clear_calendar(self, calendar_name: str,
+                       dry_run: bool = False,
+                       **filter_args):
         calendar_id = self.get_calendar_id(calendar_name)
-        events = self.get_events(calendar_id)
+        events = filter_events(self.get_events(calendar_id), **filter_args)
         print(f'Clearing {len(events)} events from {calendar_name}...')
-        for i, e in enumerate(events):
-            self.service.events().delete(calendarId=calendar_id,
-                                         eventId=e['id']).execute()
-            print(i, end='\r')
-        print()
+        if dry_run:
+            print('(DRY RUN)')
+            print_events(events)
+        else:
+            for i, e in enumerate(events):
+                self.service.events().delete(calendarId=calendar_id,
+                                             eventId=e['id']).execute()
+                print(i, end='\r')
+            print()
 
     def add_events(self, calendar_name: str,
                    events: Iterable[Event],
                    skip_existing_events: bool = True,
                    dry_run: bool = False,
-                   start_datetime: datetime = None):
-        if dry_run:
-            print('DRY RUN')
-
-        # Filter out events older than the start_datetime.
-        events = [e for e in events if (
-            start_datetime is None or
-            datetime.fromisoformat(e['start']['dateTime']) >= start_datetime)]
-
-        print(f'Adding {len(events)} new events to {calendar_name}...')
+                   **filter_args):
         calendar_id = self.get_calendar_id(calendar_name)
+        events = filter_events(events, **filter_args)
+        print(f'Adding {len(events)} new events to {calendar_name}...')
+
         if skip_existing_events:
             def event_key(e):
                 return '|'.join([
@@ -82,11 +86,33 @@ class CalendarApi(object):
             print(f'{pre_filter_num_events - len(events)} events were '
                   'screened because they already exist on this calendar.')
 
-        for event in events:
-            if dry_run:
-                pprint(event)
-                print('------------------------------------')
-            else:
+        if dry_run:
+            print('(DRY RUN)')
+            print_events(events)
+        else:
+            for event in events:
                 response = self.service.events().insert(
                     calendarId=calendar_id, body=event).execute()
                 print(f'Added event {pformat(response)}')
+
+
+def print_events(events):
+    for e in events:
+        pprint(e)
+        print('--------------------------------------')
+
+
+def filter_events(events, start_datetime=None, end_datetime=None):
+    """Filters out events older than the start_datetime or newer than
+    end_datetime."""
+    def datetime_selector(event):
+        return (
+            (start_datetime is None or
+             datetime.fromisoformat(event['start']['dateTime'])
+             >= start_datetime)
+            and
+            (end_datetime is None or
+             datetime.fromisoformat(event['end']['dateTime'])
+             <= end_datetime)
+        )
+    return [e for e in events if datetime_selector(e)]
