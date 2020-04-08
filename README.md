@@ -6,6 +6,25 @@ album.
 Check out https://github.com/ActivityWatch/activitywatch as a potential data
 source.
 
+For long events (e.g. whole day), think about making the event name long with
+newlines, so that you get a "graph" in the calendar UI.  For example:
+
+```
+Temperature event:
+68
+68
+68
+68
+68
+68
+69
+70
+70
+70
+70
+...
+```
+
 ## Cron
 
 Add this command to run every day at 11am, assuming you installed this script
