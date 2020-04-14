@@ -136,8 +136,7 @@ def main():
 
         # Directly from timeline web "API"
         location_events = maps_data_parser.make_events_from_kml_data(
-            # '2019-09-01', date.today())
-            '2020-04-01', date.today())
+            '2019-09-01', date.today())
         cal_api_instance.add_events(calendars['maps'], location_events,
                                     **cal_mod_args)
 
