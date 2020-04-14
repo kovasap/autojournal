@@ -1,5 +1,5 @@
 from functools import reduce
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from dateutil import tz
 import argparse
 
@@ -125,14 +125,19 @@ def main():
         cal_api_instance.add_events(calendars['phone'], android_events,
                                     **cal_mod_args)
 
-    # Add locations and travel from Google Maps Location History stored in
-    # Google Drive.
+    # Add locations and travel from Google Maps Location History
     if 'all' in args.update or 'maps' in args.update:
-        drive_api_instance = drive_api.DriveApi(creds)
-        maps_location_history_files = drive_api_instance.read_files(
-            directory='maps-location-history')
-        location_events = maps_data_parser.parse_semantic_location_history(
-            maps_location_history_files)
+        # From Google Takeout files stored in Google Drive.
+        # drive_api_instance = drive_api.DriveApi(creds)
+        # maps_location_history_files = drive_api_instance.read_files(
+        #     directory='maps-location-history')
+        # location_events = maps_data_parser.parse_semantic_location_history(
+        #     maps_location_history_files)
+
+        # Directly from timeline web "API"
+        location_events = maps_data_parser.make_events_from_kml_data(
+            # '2019-09-01', date.today())
+            '2020-04-01', date.today())
         cal_api_instance.add_events(calendars['maps'], location_events,
                                     **cal_mod_args)
 

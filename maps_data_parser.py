@@ -1,5 +1,9 @@
 import json
 from pprint import pprint
+import pandas as pd
+from datetime import datetime
+
+from maps_location_history.process_location import get_kml_file, full_df
 
 import calendar_api
 import utils
@@ -46,3 +50,40 @@ See https://www.google.com/maps/timeline?pb=!1m2!1m1!1s{date} for more.
             else:
                 raise Exception(o)
     return events
+
+
+COOKIE_FILE = '/home/kovas/photos_calendar_sync/timeline_cookie.txt'
+KML_OUTPUT_DIRECTORY = '/home/kovas/photos_calendar_sync/location_data/'
+
+
+def make_events_from_kml_data(start_date, end_date,
+                              timezone_name='America/Los_Angeles'):
+    with open(COOKIE_FILE, 'r') as f:
+        cookie_content = f.read().strip()
+    kml_files = []
+    for date in pd.date_range(start=start_date, end=end_date):
+        kml_files.append(
+            get_kml_file(date.year, date.month, date.day, cookie_content,
+                         KML_OUTPUT_DIRECTORY))
+    df = full_df(kml_files)
+    events = []
+    for _, row in df.iterrows():
+        # TODO(kovas) collapse events with < 10% of their time between each
+        # other into a single event (e.g. at home).
+        events.append(calendar_api.Event(
+            start=utils.utc_to_timezone(row.RawBeginTime, timezone_name),
+            end=utils.utc_to_timezone(row.RawEndTime, timezone_name),
+            summary=(
+                f'{round(row.Distance / row.TotalSecs, 1)} m/s {row.Category}'
+                if row.Category else
+                f'At {row.Name} {row.Address}'
+            ),
+            description=(
+                f'See https://www.google.com/maps/timeline?pb=!1m2!1m1!1s{row.BeginDate} for details.'
+            )
+        ))
+    return events
+
+
+if __name__ == '__main__':
+    make_events_from_kml_data('2019-09-01', '2019-10-10')
