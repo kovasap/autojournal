@@ -91,9 +91,14 @@ class CalendarApi(object):
             print_events(events)
         else:
             for event in events:
-                response = self.service.events().insert(
-                    calendarId=calendar_id, body=event).execute()
-                print(f'Added event {pformat(response)}')
+                try:
+                    response = self.service.events().insert(
+                        calendarId=calendar_id, body=event).execute()
+                    print(f'Added event {pformat(response)}')
+                except Exception as e:
+                    print(f'FAILED to add event {pformat(event)}')
+                    print(f'Failure reason: {repr(e)}')
+                    raise
 
 
 def print_events(events):

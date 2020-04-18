@@ -8,6 +8,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from collections import defaultdict
 from functools import reduce
+from pprint import pprint
 
 from sortedcontainers import SortedList
 from selfspy.modules import models, config as cfg
@@ -162,7 +163,7 @@ def get_window_sessions(db_name):
     for keys_row in session.query(models.Keys).order_by(models.Keys.id).all():
         window_sessions.add(
             WindowSession(
-                title=keys_row.window.title,
+                title=str(keys_row.window.title),
                 program_name=keys_row.process.name,
                 action_timings=SortedList(
                     [ActionTiming(
@@ -183,38 +184,77 @@ def get_window_sessions(db_name):
     return window_sessions
 
 
+# This function attempts to group sessions assuming that they overlap, which
+# shouldn't normally happen
+def group_sessions(window_sessions, group_separation_time):
+    # We assume the window_sessions are sorted by their first action timing
+    groups = [
+        [window_sessions[0]],
+    ]
+    cur_session = window_sessions[0]
+    for next_session in window_sessions[1:]:
+        cur_group_end = (cur_session.action_timings[-1].time
+                         + group_separation_time)
+        if next_session.action_timings[0].time > cur_group_end:
+            groups.append([])
+        groups[-1].append(next_session)
+        cur_session = next_session
+    return groups
+
+
 def get_events_from_sessions(window_sessions, idle_time,
                              group_separation_time):
     # Split up long window sessions with inactive periods into several
     # sessions, each containing activity (clicks/keystrokes).
-    active_sessions = []
+
+    # Sessions can sometimes overlap (not sure why exactly...), so we enforce
+    # that they are at least sorted by the first event that happens in each and
+    # that the last event is the longest?
+    active_sessions = SortedList(key=lambda ws: ws.action_timings[0])
     for window_session in window_sessions:
         new_timings = utils.split_on_gaps(
             window_session.action_timings, idle_time, key=lambda t: t.time)
         for timings in new_timings:
-            active_sessions.append(
+            active_sessions.add(
                 WindowSession(
                     title=window_session.title,
                     program_name=window_session.program_name,
                     action_timings=SortedList(timings, key=lambda t: t.time)))
 
+    # prev = None
+    # for s in active_sessions:
+    #     if prev and prev.action_timings[0].time > s.action_timings[0].time:
+    #         print(prev.title)
+    #         for t in prev.action_timings:
+    #             print(t)
+    #         print(s.title)
+    #         for t in s.action_timings:
+    #             print(t)
+    #         print()
+    #         raise Exception()
+    #     prev = s
+    # raise Exception('nope')
+
     # Group window sessions into chunks, where each chunk contains a continuous
     # period of activity, with no inactivity longer than idle_time.
+    # grouped_sessions = group_sessions(active_sessions, group_separation_time)
     grouped_sessions = utils.split_on_gaps(
         active_sessions, group_separation_time,
         key=lambda s: s.action_timings[0].time,
         last_key=lambda s: s.action_timings[-1].time)
-
-    # for sessions in grouped_sessions:
-    #     print(get_session_group_description(sessions, long=False))
-    #     print(get_session_group_description(sessions))
-    #     print('------------------------------------------------------')
 
     return [make_cal_event_from_session_group(sessions)
             for sessions in grouped_sessions]
 
 
 def make_cal_event_from_session_group(sessions: List[WindowSession]):
+    if (sessions[0].action_timings[0].time
+            > sessions[-1].action_timings[-1].time):
+        for s in sessions:
+            print(s.title)
+            for t in s.action_timings:
+                print(t)
+        raise Exception()
     return calendar_api.Event(
         start=dict(
             dateTime=sessions[0].action_timings[0].time.replace(
@@ -229,11 +269,12 @@ def make_cal_event_from_session_group(sessions: List[WindowSession]):
     )
 
 
-def get_selfspy_usage_events(session_limit=None,
-                             idle_seconds=60 * 3,
-                             event_separation_seconds=60 * 20,
-                             ) -> List[calendar_api.Event]:
-    db_name = os.path.expanduser(os.path.join(cfg.DATA_DIR, cfg.DBNAME))
+def get_selfspy_usage_events(
+        db_name=os.path.expanduser(os.path.join(cfg.DATA_DIR, cfg.DBNAME)),
+        session_limit=None,
+        idle_seconds=60 * 3,
+        event_separation_seconds=60 * 20,
+) -> List[calendar_api.Event]:
     # db_name = 'test_selfspy_db/selfspy.sqlite'
     window_sessions = get_window_sessions(db_name)
     if session_limit:
@@ -241,3 +282,7 @@ def get_selfspy_usage_events(session_limit=None,
     return get_events_from_sessions(
         window_sessions, timedelta(seconds=idle_seconds),
         timedelta(seconds=event_separation_seconds))
+
+
+if __name__ == '__main__':
+    pprint(get_selfspy_usage_events('desktop_selfspy.sqlite', None))

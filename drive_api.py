@@ -18,7 +18,7 @@ class DriveApi(object):
         return {file.get('name'): self.get_file_lines(file.get('id'))
                 for file in found_files}
 
-    def get_file_lines(self, file_id):
+    def download_file(self, file_id):
         request = self.service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
@@ -27,7 +27,18 @@ class DriveApi(object):
             status, done = downloader.next_chunk()
             # print("Downloading file %d%%." % int(status.progress() * 100))
         fh.seek(0)
-        return [l.decode('utf-8') for l in fh.readlines()]
+        return fh
+
+    def download_file_to_disk(self, folder, filename, filepath):
+        folder_id = self.get_folder_id(folder)
+        for file in self._get_files_for_query(f"'{folder_id}' in parents"):
+            if file['name'] == filename:
+                with open(filepath, 'wb') as f:
+                    f.write(self.download_file(file['id']).getbuffer())
+
+    def get_file_lines(self, file_id):
+        return [l.decode('utf-8')
+                for l in self.download_file(file_id).readlines()]
 
     def get_folder_id(self, folder_name):
         found_files = self._get_files_for_query(
@@ -50,3 +61,11 @@ class DriveApi(object):
             if page_token is None:
                 break
         return found_files
+
+
+if __name__ == "__main__":
+    import credentials
+    creds = credentials.get_credentials([
+        # If modifying scopes, delete the file token.pickle.
+        'https://www.googleapis.com/auth/drive.readonly'])
+    drive_api = DriveApi(creds)

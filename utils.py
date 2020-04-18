@@ -4,7 +4,7 @@ from dateutil import tz
 
 
 def timestamp_ms_to_event_time(timestamp_ms: int,
-                               timezone_name='America/Los_Angeles'
+                               timezone_name='America/Los_Angeles',
                                ) -> Dict[str, str]:
     t = datetime.fromtimestamp(timestamp_ms / 1000).replace(
         tzinfo=tz.gettz(timezone_name))
@@ -70,7 +70,7 @@ def is_subset(ref: dict, query: dict) -> bool:
 
 
 def split_on_gaps(values, threshold, key=lambda o: o, last_key=None):
-    """
+    """Input values will generally need to be sorted.
 
     >>> split_on_gaps([1,2,3,4,8,9,10], 2)
     [[1, 2, 3, 4], [8, 9, 10]]

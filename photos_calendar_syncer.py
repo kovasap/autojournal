@@ -70,6 +70,7 @@ def main():
         'https://www.googleapis.com/auth/photoslibrary.readonly'])
 
     cal_api_instance = calendar_api.CalendarApi(creds)
+    drive_api_instance = drive_api.DriveApi(creds)
 
     cal_mod_args = dict(dry_run=args.dry_run)
     if args.start_date:
@@ -108,14 +109,15 @@ def main():
 
     # Add desktop activity from selfspy db stored in Google Drive
     if 'all' in args.update or 'desktop' in args.update:
-        # desktop_events = selfspy_api.get_selfspy_usage_events()
-        # cal_api_instance.add_events(calendars['desktop'], desktop_events,
-        #                             **cal_mod_args)
-        pass
+        drive_api_instance.download_file_to_disk(
+            'selfspy', 'selfspy.sqlite', 'desktop_selfspy.sqlite')
+        desktop_events = selfspy_api.get_selfspy_usage_events(
+            db_name='desktop_selfspy.sqlite')
+        cal_api_instance.add_events(calendars['desktop'], desktop_events,
+                                    **cal_mod_args)
 
     # Add phone events from phone usage csvs stored in Google Drive
-    if 'all' in args.update or 'desktop' in args.update:
-        drive_api_instance = drive_api.DriveApi(creds)
+    if 'all' in args.update or 'phone' in args.update:
         android_activity_files = drive_api_instance.read_files(
             directory='android-activity-logs')
         android_events = app_usage_output_parser.create_events(

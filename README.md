@@ -25,6 +25,10 @@ Temperature event:
 ...
 ```
 
+For complex events (e.g. selfspy activity tracking), try using a word cloud
+type program to extract out representative words to put into the calendar event
+summary.
+
 ## Cron
 
 Add this command to run every day at 11am, assuming you installed this script
