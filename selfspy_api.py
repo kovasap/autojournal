@@ -143,11 +143,14 @@ Windows used ({len(sessions)} total switches):
                 break
         kpm = round(total_actions['keystrokes'] / 60, 2)
         cpm = round(total_actions['clicks'] / 60, 2)
-        percent_active = round(
-            100 * total_secs / (
-                sessions[-1].action_timings[-1].time
-                - sessions[0].action_timings[0].time).total_seconds(),
-            1)
+        try:
+            percent_active = round(
+                100 * total_secs / (
+                    sessions[-1].action_timings[-1].time
+                    - sessions[0].action_timings[0].time).total_seconds(),
+                1)
+        except ZeroDivisionError:
+            percent_active = '0.0'
         return f"""{get_total_time_of_sessions_str(sessions)} Active
  ({percent_active}%)
  -- {' | '.join(top_session_titles)[:50]}

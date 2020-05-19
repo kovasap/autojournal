@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from maps_location_history.process_location import get_kml_file, full_df
 
@@ -65,23 +65,27 @@ def make_events_from_kml_data(start_date, end_date,
         kml_files.append(
             get_kml_file(date.year, date.month, date.day, cookie_content,
                          KML_OUTPUT_DIRECTORY))
-    df = full_df(kml_files)
+    df = full_df(kml_files).sort_values('RawBeginTime')
     events = []
+    last_name_id = None
     for _, row in df.iterrows():
-        # TODO(kovas) collapse events with < 10% of their time between each
-        # other into a single event (e.g. at home).
-        events.append(calendar_api.Event(
-            start=utils.utc_to_timezone(row.RawBeginTime, timezone_name),
-            end=utils.utc_to_timezone(row.RawEndTime, timezone_name),
-            summary=(
-                f'{round(row.Distance / row.TotalSecs, 1)} m/s {row.Category}'
-                if row.Category else
-                f'At {row.Name} {row.Address}'
-            ),
-            description=(
-                f'See https://www.google.com/maps/timeline?pb=!1m2!1m1!1s{row.BeginDate} for details.'
-            )
-        ))
+        name_id = str(row.Name) + str(row.Address)
+        # Collapse events where both places are the same into a single event.
+        if last_name_id == name_id:
+            events[-1]['end'] = utils.utc_to_timezone(row.RawEndTime,
+                                                      timezone_name)
+        else:
+            events.append(calendar_api.Event(
+                start=utils.utc_to_timezone(row.RawBeginTime, timezone_name),
+                end=utils.utc_to_timezone(row.RawEndTime, timezone_name),
+                summary=(
+                    f'{round(row.Distance / row.TotalSecs, 1)} m/s {row.Category}'
+                    if row.Category else
+                    f'At {row.Name} {row.Address}'
+                ),
+                description=f'See https://www.google.com/maps/timeline?pb=!1m2!1m1!1s{row.BeginDate} for details.'
+            ))
+        last_name_id = name_id
     return events
 
 

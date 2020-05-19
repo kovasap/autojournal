@@ -104,8 +104,10 @@ def main():
     # Add laptop activity from selfspy
     if 'all' in args.update or 'laptop' in args.update:
         laptop_events = selfspy_api.get_selfspy_usage_events()
-        cal_api_instance.add_events(calendars['laptop'], laptop_events,
-                                    **cal_mod_args)
+        cal_api_instance.add_events(
+            calendars['laptop'], laptop_events,
+            skip_existing_event_key=calendar_api.time_started_event_key,
+            **cal_mod_args)
 
     # Add desktop activity from selfspy db stored in Google Drive
     if 'all' in args.update or 'desktop' in args.update:
@@ -113,8 +115,10 @@ def main():
             'selfspy', 'selfspy.sqlite', 'desktop_selfspy.sqlite')
         desktop_events = selfspy_api.get_selfspy_usage_events(
             db_name='desktop_selfspy.sqlite')
-        cal_api_instance.add_events(calendars['desktop'], desktop_events,
-                                    **cal_mod_args)
+        cal_api_instance.add_events(
+            calendars['desktop'], desktop_events,
+            skip_existing_event_key=calendar_api.time_started_event_key,
+            **cal_mod_args)
 
     # Add phone events from phone usage csvs stored in Google Drive
     if 'all' in args.update or 'phone' in args.update:
@@ -139,8 +143,10 @@ def main():
         # Directly from timeline web "API"
         location_events = maps_data_parser.make_events_from_kml_data(
             '2019-09-01', date.today())
-        cal_api_instance.add_events(calendars['maps'], location_events,
-                                    **cal_mod_args)
+        cal_api_instance.add_events(
+            calendars['maps'], location_events,
+            skip_existing_event_key=calendar_api.time_started_event_key,
+            **cal_mod_args)
 
     # TODO add journal entries
 

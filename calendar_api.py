@@ -1,4 +1,4 @@
-from typing import List, Iterable, Callable
+from typing import List, Iterable, Callable, Tuple
 from datetime import datetime
 from googleapiclient.discovery import build
 from pprint import pprint, pformat
@@ -14,6 +14,26 @@ CalendarList = dict
 
 
 EVENT_DESCRIPTION_LENGTH_LIMIT = 8100  # characters
+
+
+def get_consistant_event_timing(event: Event) -> Tuple[str, str]:
+    """Get start/end time strings that are consistant from a given event.
+
+    Seconds can be rounded strangely by Google calendar, so we only compare up
+    to the minute.
+    """
+    return (event['start']['dateTime'][:16], event['end']['dateTime'][:16])
+
+
+def unique_event_key(event: Event) -> str:
+    """Returns a string that should uniquely identify an event."""
+    return '|'.join(
+        (event['description'], ) + get_consistant_event_timing(event))
+
+
+def time_started_event_key(event: Event) -> str:
+    """Returns a string that should uniquely identify an event."""
+    return get_consistant_event_timing(event)[0]
 
 
 class CalendarApi(object):
@@ -64,25 +84,23 @@ class CalendarApi(object):
                 print(i, end='\r')
             print()
 
-    def add_events(self, calendar_name: str,
-                   events: Iterable[Event],
-                   skip_existing_events: bool = True,
-                   dry_run: bool = False,
-                   **filter_args):
+    def add_events(
+            self, calendar_name: str,
+            events: Iterable[Event],
+            skip_existing_event_key: Callable[
+                [Event], bool] = unique_event_key,
+            dry_run: bool = False,
+            **filter_args):
         calendar_id = self.get_calendar_id(calendar_name)
         events = filter_events(events, **filter_args)
         print(f'Adding {len(events)} new events to {calendar_name}...')
 
-        if skip_existing_events:
-            def event_key(e):
-                return '|'.join([
-                    e['description'],
-                    # Seconds can be rounded strangely by Google calendar, so
-                    # we only compare up to the minute.
-                    e['start']['dateTime'][:16], e['end']['dateTime'][:16]])
-            existing = {event_key(e) for e in self.get_events(calendar_id)}
+        if skip_existing_event_key is not None:
+            existing = {skip_existing_event_key(e)
+                        for e in self.get_events(calendar_id)}
             pre_filter_num_events = len(events)
-            events = [e for e in events if event_key(e) not in existing]
+            events = [e for e in events
+                      if skip_existing_event_key(e) not in existing]
             print(f'{pre_filter_num_events - len(events)} events were '
                   'screened because they already exist on this calendar.')
 
