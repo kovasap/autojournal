@@ -87,22 +87,33 @@ class CalendarApi(object):
     def add_events(
             self, calendar_name: str,
             events: Iterable[Event],
-            skip_existing_event_key: Callable[
-                [Event], bool] = unique_event_key,
             dry_run: bool = False,
             **filter_args):
         calendar_id = self.get_calendar_id(calendar_name)
         events = filter_events(events, **filter_args)
         print(f'Adding {len(events)} new events to {calendar_name}...')
 
-        if skip_existing_event_key is not None:
-            existing = {skip_existing_event_key(e)
-                        for e in self.get_events(calendar_id)}
-            pre_filter_num_events = len(events)
-            events = [e for e in events
-                      if skip_existing_event_key(e) not in existing]
-            print(f'{pre_filter_num_events - len(events)} events were '
-                  'screened because they already exist on this calendar.')
+        # Find all existing events.  If new events are equal to existing
+        # events, skip them.  However, if new events have the same start time
+        # as existing events but are otherwise not equal, overwrite the
+        # existing event.
+        existing_events = self.get_events(calendar_id)
+        existing_keys = {unique_event_key(e) for e in existing_events}
+        pre_filter_num_events = len(events)
+        events = [e for e in events
+                  if unique_event_key(e) not in existing_keys]
+        print(f'{pre_filter_num_events - len(events)} events were '
+              'screened because they already exist on this calendar.')
+        print('Removing exising events with same start time...')
+        event_start_keys = {time_started_event_key(e) for e in events}
+        i = 0
+        for e in existing_events:
+            if time_started_event_key(e) in event_start_keys:
+                self.service.events().delete(calendarId=calendar_id,
+                                             eventId=e['id']).execute()
+                i += 1
+                print(i, end='\r')
+            print()
 
         if dry_run:
             print('(DRY RUN)')
