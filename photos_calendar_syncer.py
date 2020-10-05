@@ -150,6 +150,8 @@ def main():
 
     # TODO add github commits
 
+    # TODO add sleep
+
 
 if __name__ == '__main__':
     main()

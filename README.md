@@ -29,6 +29,16 @@ For complex events (e.g. selfspy activity tracking), try using a word cloud
 type program to extract out representative words to put into the calendar event
 summary.
 
+## Analysis TODOs
+
+Calculate total daily calories vs time of first meal.
+
+## Additional Things to Track
+
+Try https://blog.luap.info/how-i-track-my-life.html.
+
+Also try using nomie.app to track activity.
+
 ## Cron
 
 Add this command to run every day at 11am, assuming you installed this script
