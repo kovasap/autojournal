@@ -113,7 +113,6 @@ class CalendarApi(object):
                                              eventId=e['id']).execute()
                 i += 1
                 print(i, end='\r')
-            print()
 
         if dry_run:
             print('(DRY RUN)')
