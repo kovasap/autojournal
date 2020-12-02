@@ -1,4 +1,10 @@
-# Google Photos to Calendar Syncer
+# AutoJournal
+
+Overarching goal is to provide a system that summarizes life events
+automatically, to augment your memory and allow for further analysis if
+desired.
+
+## Google Photos to Calendar Syncer
 
 When run, will make a calendar entry for every photo that exists in a given
 album.
