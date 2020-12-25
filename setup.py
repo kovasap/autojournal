@@ -19,5 +19,6 @@ setuptools.setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.6',
+    scripts=['gcal_aggregator.py'],
     install_requires=requirements,
 )

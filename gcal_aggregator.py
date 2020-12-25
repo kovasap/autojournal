@@ -1,3 +1,5 @@
+#!/bin/python3
+
 from functools import reduce
 from datetime import timedelta, datetime, date
 from dateutil import tz
