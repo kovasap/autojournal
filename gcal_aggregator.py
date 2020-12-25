@@ -103,7 +103,10 @@ def main():
 
     # Add laptop activity from selfspy
     if 'all' in args.update or 'laptop' in args.update:
-        laptop_events = selfspy_api.get_selfspy_usage_events()
+        drive_api_instance.download_file_to_disk(
+            'selfspy-laptop', 'selfspy.sqlite', 'laptop_selfspy.sqlite')
+        laptop_events = selfspy_api.get_selfspy_usage_events(
+            db_name='laptop_selfspy.sqlite')
         cal_api_instance.add_events(
             calendars['laptop'], laptop_events,
             **cal_mod_args)

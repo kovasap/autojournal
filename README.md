@@ -55,3 +55,13 @@ using the `photos_calendar_sync` virtualenv.
 ```
 
 Check out this article for ideas about other kinds of tracking on Google Calendar: https://towardsdatascience.com/andorid-activity-1ecc454c636c
+
+## Google Cloud
+
+Set up a free tier compute engine instance.  Then do
+https://cloud.google.com/compute/docs/gcloud-compute#default-properties and you
+should be able to ssh into the instance with:
+
+```
+gcloud compute ssh kovas
+```
