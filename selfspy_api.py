@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 from functools import reduce
 from pprint import pprint
+import psutil
 
 from sortedcontainers import SortedList
 from selfspy.modules import models, config as cfg
@@ -279,12 +280,18 @@ def get_selfspy_usage_events(
         event_separation_seconds=60 * 20,
 ) -> List[calendar_api.Event]:
     # db_name = 'test_selfspy_db/selfspy.sqlite'
+    process = psutil.Process(os.getpid())
+    print('mem used: ', process.memory_info().rss / 10**6, 'MB')
     window_sessions = get_window_sessions(db_name)
+    print('mem used: ', process.memory_info().rss / 10**6, 'MB')
     if session_limit:
         window_sessions = window_sessions[-session_limit:]
-    return get_events_from_sessions(
+    print('mem used: ', process.memory_info().rss / 10**6, 'MB')
+    events = get_events_from_sessions(
         window_sessions, timedelta(seconds=idle_seconds),
         timedelta(seconds=event_separation_seconds))
+    print('mem used: ', process.memory_info().rss / 10**6, 'MB')
+    return events
 
 
 if __name__ == '__main__':

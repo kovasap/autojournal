@@ -4,6 +4,8 @@ from functools import reduce
 from datetime import timedelta, datetime, date
 from dateutil import tz
 import argparse
+import os
+import psutil
 
 import credentials
 import photos_api
@@ -50,7 +52,7 @@ argparser.add_argument(
     default=[],
     help='Calendars to update.')
 argparser.add_argument(
-    '--dry_run', type=bool, default=False,
+    '--dry_run', action='store_true', default=False,
     help='Will print what would be added to the calendar(s) without actually '
          'updating them.')
 argparser.add_argument(
@@ -65,6 +67,8 @@ args = argparser.parse_args()
 
 
 def main():
+    process = psutil.Process(os.getpid())
+
     creds = credentials.get_credentials([
         # If modifying scopes, delete the file token.pickle.
         'https://www.googleapis.com/auth/drive.readonly',
@@ -90,9 +94,11 @@ def main():
 
     # Add food events from Google Photos.
     if 'all' in args.update or 'food' in args.update:
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         photos_api_instance = photos_api.PhotosApi(creds)
         food_pictures = photos_api_instance.get_album_contents(
             photos_api_instance.get_album_id('Food!'))
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         # Collapse multiple food pictures taken within 30 mins to one food
         # event.
         grouped_photos = utils.split_on_gaps(
@@ -100,21 +106,30 @@ def main():
             key=lambda photo: datetime.fromisoformat(
                 photo['mediaMetadata']['creationTime'].rstrip('Z')))
         food_events = [photos_to_event(photos) for photos in grouped_photos]
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         cal_api_instance.add_events(calendars['food'], food_events,
                                     **cal_mod_args)
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
+        print('done')
 
     # Add laptop activity from selfspy
     if 'all' in args.update or 'laptop' in args.update:
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         drive_api_instance.download_file_to_disk(
             'selfspy-laptop', 'selfspy.sqlite', 'laptop_selfspy.sqlite')
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         laptop_events = selfspy_api.get_selfspy_usage_events(
             db_name='laptop_selfspy.sqlite')
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         cal_api_instance.add_events(
             calendars['laptop'], laptop_events,
             **cal_mod_args)
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
+        print('done2')
 
     # Add desktop activity from selfspy db stored in Google Drive
     if 'all' in args.update or 'desktop' in args.update:
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         drive_api_instance.download_file_to_disk(
             'selfspy', 'selfspy.sqlite', 'desktop_selfspy.sqlite')
         desktop_events = selfspy_api.get_selfspy_usage_events(
@@ -124,6 +139,7 @@ def main():
 
     # Add phone events from phone usage csvs stored in Google Drive
     if 'all' in args.update or 'phone' in args.update:
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         android_activity_files = drive_api_instance.read_files(
             directory='android-activity-logs')
         android_events = app_usage_output_parser.create_events(
@@ -135,6 +151,7 @@ def main():
 
     # Add locations and travel from Google Maps Location History
     if 'all' in args.update or 'maps' in args.update:
+        print('Memory used: ', process.memory_info().rss / 10**6, 'MB')
         # From Google Takeout files stored in Google Drive.
         # drive_api_instance = drive_api.DriveApi(creds)
         # maps_location_history_files = drive_api_instance.read_files(

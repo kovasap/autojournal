@@ -5,3 +5,4 @@ sortedcontainers
 pandas
 bs4
 lxml
+psutil
