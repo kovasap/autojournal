@@ -16,7 +16,8 @@ Create a histogram-timeline using
 [d3js](https://www.d3-graph-gallery.com/graph/density_basic.html) that all data
 gets plotted on.  Have checkboxes to turn on/off data series.  Idea here is to
 plot lots of stuff (keystrokes, temperature, heartrate, stock market, etc.) and
-have a each way to check on whatever.
+have a each way to check on whatever.  Could use [Joy
+plot](http://datavizcatalogue.com/blog/area-graphs/) for this.
 
 ## Google Photos to Calendar Syncer
 
