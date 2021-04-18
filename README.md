@@ -31,7 +31,7 @@ For plotting GPS logs:
 
  - [Google maps python API](https://github.com/googlemaps/google-maps-services-python)
  - [QGIS open source mapping project](https://qgis.org/en/site/about/index.html)
- - **[folium](https://github.com/python-visualization/folium)
+ - **[folium](https://github.com/python-visualization/folium)**
 
 ## Google Photos to Calendar Syncer
 
