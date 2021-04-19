@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "autojournal"
+version = "0.1.0"
+description = ""
+authors = ["Kovas Palunas <kovas.palunas@gmail.com>"]
+packages = [
+    { include = "autojournal" }
+    ]
+
+[tool.poetry.scripts]
+report_generator = "autojournal.report_generator:main"
+gcal_aggregator = "autojournal.gcal_aggregator:main"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+python-dateutil = "^2.8.1"
+google-auth-oauthlib = "^0.4.4"
+google-api-python-client = "^2.2.0"
+sortedcontainers = "^2.3.0"
+pandas = "^1.2.4"
+plotly = "^4.14.3"
+click = "^7.1.2"
+bs4 = "^0.0.1"
+lxml = "^4.6.3"
+psutil = "^5.8.0"
+selfspy = {git = "https://github.com/kovasap/selfspy.git", branch="master"}
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

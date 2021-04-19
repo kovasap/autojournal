@@ -4,11 +4,21 @@ Overarching goal is to provide a system that summarizes life events
 automatically, to augment your memory and allow for further analysis if
 desired.
 
-## Installation
+## Getting Started
+
+Run:
 
 ```
-mkvirtualenv autojournal
+poetry install
 ```
+
+Then, run:
+
+```
+source $(poetry env info --path)/bin/activate
+```
+
+to get into the poetry virtualenv to run scripts.
 
 ## Frontend Idea
 
