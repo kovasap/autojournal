@@ -1,15 +1,10 @@
 from collections import defaultdict
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Any
 
 import pytz
 
-
-@dataclass
-class Event:
-    timestamp: datetime
-    data: dict
+from ..data_model import Event
 
 
 def is_numeric(v: Any) -> bool:
@@ -44,7 +39,7 @@ def parse_time(time: str) -> datetime:
     return dt.astimezone(pytz.timezone('America/Los_Angeles'))
 
 
-def parse_nutrition(data_by_fname, daily_cumulative: bool=False
+def parse_nutrition(data_by_fname, daily_cumulative: bool=True
                     ) -> List[Event]:
     foods_by_day = _get_data_for_day(data_by_fname['servings.csv'])
     notes_by_day = _get_data_for_day(data_by_fname['notes.csv'])
@@ -66,7 +61,7 @@ def parse_nutrition(data_by_fname, daily_cumulative: bool=False
                     data=food))
                 cur_day_events.append(Event(
                     timestamp=events[-1].timestamp,
-                    data={k: sum(e.data[k] for e in cur_day_events) + v
+                    data={k: sum(e.data.get(k, 0) for e in cur_day_events) + float(v)
                           for k, v in food.items() if is_numeric(v)},
                 ))
         # Assume the rest of the foods were eaten at midnight.
@@ -77,9 +72,10 @@ def parse_nutrition(data_by_fname, daily_cumulative: bool=False
                 data=food))
             cur_day_events.append(Event(
                 timestamp=events[-1].timestamp,
-                data={k: sum(e.data[k] for e in cur_day_events) + v
+                data={k: sum(e.data.get(k, 0) for e in cur_day_events) + float(v)
                       for k, v in food.items() if is_numeric(v)},
             ))
+        daily_cum_events += cur_day_events
 
     return daily_cum_events if daily_cumulative else events
 
