@@ -27,7 +27,7 @@ def _parse_food_timing_note(note: str) -> dict:
     return data
 
 
-def _get_data_for_day(csv_data):
+def _get_data_by_day(csv_data):
     data_by_day = defaultdict(list)
     for line in csv_data:
         data_by_day[line['Day']].append(line)
@@ -39,10 +39,20 @@ def parse_time(time: str) -> datetime:
     return dt.astimezone(pytz.timezone('America/Los_Angeles'))
 
 
+def add_food(t, d, events, cur_day_events):
+    events.append(Event(timestamp=t, data=d))
+    cur_day_events.append(Event(
+        timestamp=t,
+        data={k: (cur_day_events[-1].data.get(k, 0)
+                  if len(cur_day_events) else 0
+                  + float(v))
+              for k, v in d.items() if is_numeric(v)}))
+
+
 def parse_nutrition(data_by_fname, daily_cumulative: bool=True
                     ) -> List[Event]:
-    foods_by_day = _get_data_for_day(data_by_fname['servings.csv'])
-    notes_by_day = _get_data_for_day(data_by_fname['notes.csv'])
+    foods_by_day = _get_data_by_day(data_by_fname['servings.csv'])
+    notes_by_day = _get_data_by_day(data_by_fname['notes.csv'])
 
     events = []
     daily_cum_events = []
@@ -54,27 +64,12 @@ def parse_nutrition(data_by_fname, daily_cumulative: bool=True
                 continue
             note_data = _parse_food_timing_note(note)
             for _ in range(note_data['num_foods']):
-                food = next(foods_iter)
-                events.append(Event(
-                    timestamp=parse_time(f'{day} {note_data["time"]}'),
-                    # duration=10 * 60,  # In seconds
-                    data=food))
-                cur_day_events.append(Event(
-                    timestamp=events[-1].timestamp,
-                    data={k: sum(e.data.get(k, 0) for e in cur_day_events) + float(v)
-                          for k, v in food.items() if is_numeric(v)},
-                ))
+                add_food(parse_time(f'{day} {note_data["time"]}'),
+                         next(foods_iter), events, cur_day_events)
         # Assume the rest of the foods were eaten at midnight.
         for food in foods_iter:
-            events.append(Event(
-                timestamp=parse_time(f'{day} 12:00am'),
-                # duration=10 * 60,  # In seconds
-                data=food))
-            cur_day_events.append(Event(
-                timestamp=events[-1].timestamp,
-                data={k: sum(e.data.get(k, 0) for e in cur_day_events) + float(v)
-                      for k, v in food.items() if is_numeric(v)},
-            ))
+            add_food(parse_time(f'{day} 12:00am'),
+                     food, events, cur_day_events)
         daily_cum_events += cur_day_events
 
     return daily_cum_events if daily_cumulative else events

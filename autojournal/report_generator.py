@@ -1,6 +1,8 @@
 import click
 from datetime import datetime
+from dateutil import tz
 import plotly.graph_objects as go
+from typing import Union
 
 from . import credentials
 from . import drive_api
@@ -29,27 +31,27 @@ def create_plot(data, metrics_to_plot, html_name) -> str:
     def get_points_with_metric(metric: str):
         return [p for p in data if metric in p.data]
 
-    axis_domain_size = 1 / len(metrics_to_plot)
+    axis_domain_size = 1.0 / len(metrics_to_plot)
     y_axes = {}
     for i, m in enumerate(metrics_to_plot):
         pts = get_points_with_metric(m)
+        y_data = [p.data[m] for p in pts]
         fig.add_trace(go.Scatter(
             x=[p.timestamp for p in pts],
-            y=[p.data[m] for p in pts],
+            y=y_data,
             name=m,
             text=[', '.join(p.data.get(lm, '') for lm in LABEL_METRICS[m])
                   if m in LABEL_METRICS else str(p.data[m])
                   for p in pts],
-            yaxis='y' + (str(i) if i != 0 else ''),
+            yaxis=f'y{i + 1}',
         ))
-        y_axes['yaxis' + (str(i) if i != 0 else '')] = dict(
+        y_axes[f'yaxis{i + 1}'] = dict(
             anchor="x",
             autorange=True,
             domain=[axis_domain_size * i, axis_domain_size * (i + 1)],
             linecolor=METRIC_COLORS[i],
             mirror=True,
-            range=[min(p.data[m] for p in pts),
-                   max(p.data[m] for p in pts)],
+            range=[min(y_data), max(y_data)],
             showline=True,
             side="right",
             tickfont={"color": METRIC_COLORS[i]},
@@ -100,8 +102,27 @@ def create_plot(data, metrics_to_plot, html_name) -> str:
     fig.write_html(html_name)
 
 
+def parse_date(s: Union[str, datetime]) -> datetime:
+    if isinstance(s, datetime):
+        return s
+    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y'):
+        try:
+            return datetime.strptime(s, fmt).replace(tzinfo=DEFAULT_TIMEZONE)
+        except ValueError:
+            pass
+    raise ValueError('no valid date format found')
+
+
+DEFAULT_TIMEZONE = tz.gettz('PST')
+
+
 @click.command()
-def main():
+@click.option('--start_date', default='2000-01-01')
+@click.option('--end_date', default=datetime.now().replace(tzinfo=DEFAULT_TIMEZONE))
+def main(start_date: str, end_date: str):
+    start_date, end_date = parse_date(start_date), parse_date(end_date)
+
+
     creds = credentials.get_credentials([
         # If modifying scopes, delete the file token.pickle.
         'https://www.googleapis.com/auth/drive.readonly',
@@ -126,6 +147,10 @@ def main():
             timestamp=datetime.fromisoformat(e['end']['dateTime']),
             data={'description': e.get('description', ''), 'asleep': 0},
         ))
+    # Filter events by date
+    event_data = [e for e in event_data if start_date < e.timestamp < end_date]
+    event_data = sorted(event_data, key=lambda e: e.timestamp)
+
     create_plot(event_data, ['Energy (kcal)', 'Fiber (g)', 'asleep'],
                 'out.html')
 
