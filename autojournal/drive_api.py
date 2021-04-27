@@ -29,7 +29,7 @@ class DriveApi(object):
             f"'{self.get_folder_id(directory)}' in parents")
         return {file.get('name'): self.get_spreadsheet_data(file)
                 for file in found_files
-                if file.get('name') in only or only is None}
+                if only is None or file.get('name') in only}
 
     def get_spreadsheet_data(self, file):
         if file['mimeType'] in {'text/comma-separated-values', 'text/csv'}:
@@ -42,7 +42,8 @@ class DriveApi(object):
                 # gid='0',
             )
         else:
-            raise ValueError(f'File {file} not of supported type.')
+            print(f'File {file} not of supported type.')
+            return []
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False

@@ -8,6 +8,8 @@ from . import credentials
 from . import drive_api
 from . import calendar_api
 from .parsers import cronometer
+from .parsers import cgm
+from .parsers import nomie
 from . import data_model
 
 
@@ -132,11 +134,15 @@ def main(start_date: str, end_date: str):
     cal_api_instance = calendar_api.CalendarApi(creds)
 
     spreadsheet_data = drive_api_instance.read_all_spreadsheet_data(
-        'activitywatch-data', only={'servings.csv', 'notes.csv'})
+        'activitywatch-data')
+    spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+        'medical-records'))
 
     sleep_data = cal_api_instance.get_events(
         cal_api_instance.get_calendar_id('Sleep'))
     event_data = cronometer.parse_nutrition(spreadsheet_data)
+    event_data += cgm.parse_cgm(spreadsheet_data)
+    event_data += nomie.parse_nomie(spreadsheet_data)
 
     for e in sleep_data:
         event_data.append(data_model.Event(
@@ -147,12 +153,22 @@ def main(start_date: str, end_date: str):
             timestamp=datetime.fromisoformat(e['end']['dateTime']),
             data={'description': e.get('description', ''), 'asleep': 0},
         ))
+
+    # If events don't have a timezone, assume DEFAULT_TIMEZONE
+    for e in event_data:
+        if e.timestamp.tzinfo is None:
+            e.timestamp = e.timestamp.replace(tzinfo=DEFAULT_TIMEZONE)
+
     # Filter events by date
     event_data = [e for e in event_data if start_date < e.timestamp < end_date]
     event_data = sorted(event_data, key=lambda e: e.timestamp)
 
-    create_plot(event_data, ['Energy (kcal)', 'Fiber (g)', 'asleep'],
-                'out.html')
+    create_plot(
+        event_data, [
+            'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
+            'weight'
+        ],
+        'out.html')
 
 
 if __name__ == '__main__':
