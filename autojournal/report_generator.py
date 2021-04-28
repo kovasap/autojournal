@@ -2,6 +2,7 @@ import click
 from datetime import datetime
 from dateutil import tz
 import plotly.graph_objects as go
+import plotly.express as px
 from typing import Union
 
 from . import credentials
@@ -10,12 +11,11 @@ from . import calendar_api
 from .parsers import cronometer
 from .parsers import cgm
 from .parsers import nomie
+from .parsers import gps
 from . import data_model
 
 
-METRIC_COLORS = [
-    '#673ab7', '#E91E63', '#795548', '#607d8b', '#2196F3'
-]
+METRIC_COLORS = px.colors.sequential.Plasma
 
 
 # Map from metric names to other metric names that should be used as labels.
@@ -137,12 +137,15 @@ def main(start_date: str, end_date: str):
         'activitywatch-data')
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'medical-records'))
+    spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+        'GPSLogger for Android'))
 
     sleep_data = cal_api_instance.get_events(
         cal_api_instance.get_calendar_id('Sleep'))
     event_data = cronometer.parse_nutrition(spreadsheet_data)
     event_data += cgm.parse_cgm(spreadsheet_data)
     event_data += nomie.parse_nomie(spreadsheet_data)
+    event_data += gps.parse_gps(spreadsheet_data)
 
     for e in sleep_data:
         event_data.append(data_model.Event(
@@ -166,7 +169,7 @@ def main(start_date: str, end_date: str):
     create_plot(
         event_data, [
             'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
-            'weight'
+            'weight', 'speed'
         ],
         'out.html')
 

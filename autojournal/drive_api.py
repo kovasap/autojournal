@@ -1,5 +1,7 @@
 import csv
+import os.path as op
 import io
+import zipfile
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -32,30 +34,25 @@ class DriveApi(object):
                 if only is None or file.get('name') in only}
 
     def get_spreadsheet_data(self, file):
-        if file['mimeType'] in {'text/comma-separated-values', 'text/csv'}:
-            request = self.service.files().get_media(fileId=file.get('id'))
-        elif file['mimeType'] == 'application/vnd.google-apps.spreadsheet':
-            request = self.service.files().export_media(
-                fileId=file.get('id'),
-                mimeType='text/csv',
-                # exportFormat='csv',
-                # gid='0',
-            )
-        else:
+        if file['mimeType'] not in {
+                'text/comma-separated-values', 'text/csv', 'application/zip'}:
             print(f'File {file} not of supported type.')
             return []
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
-            # print("Downloading file %d%%." % int(status.progress() * 100))
-        fh.seek(0)
-        textio = io.TextIOWrapper(fh, encoding='utf-8')
+        get_media_kwargs = {}
+        if file['mimeType'] == 'application/vnd.google-apps.spreadsheet':
+            get_media_kwargs['mimeType'] = 'text/csv'
+            # get_media_kwargs['exportFormat'] = 'csv'
+            # get_media_kwargs['gid'] = '0'
+        dl_file = self.download_file(file.get('id'), **get_media_kwargs)
+        if file['mimeType'] == 'application/zip':
+            dl_file = zipfile.ZipFile(dl_file).open(
+                op.splitext(file.get('name'))[0] + '.csv')
+        textio = io.TextIOWrapper(dl_file, encoding='utf-8')
         return [row for row in csv.DictReader(textio)]
 
-    def download_file(self, file_id):
-        request = self.service.files().get_media(fileId=file_id)
+    def download_file(self, file_id, **get_media_kwargs):
+        request = self.service.files().get_media(
+            fileId=file_id, **get_media_kwargs)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False
