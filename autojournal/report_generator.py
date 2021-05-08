@@ -1,9 +1,11 @@
-import click
+import os
 from datetime import datetime
 from dateutil import tz
+from typing import Union
+
+import click
 import plotly.graph_objects as go
 import plotly.express as px
-from typing import Union
 
 from . import credentials
 from . import drive_api
@@ -12,6 +14,7 @@ from .parsers import cronometer
 from .parsers import cgm
 from .parsers import nomie
 from .parsers import gps
+from .parsers import activitywatch
 from . import data_model
 
 
@@ -38,6 +41,9 @@ def create_plot(data, metrics_to_plot, html_name) -> str:
     for i, m in enumerate(metrics_to_plot):
         pts = get_points_with_metric(m)
         y_data = [p.data[m] for p in pts]
+        if not y_data:
+            print(f'Skipping {m} since it has no data.')
+            continue
         fig.add_trace(go.Scatter(
             x=[p.timestamp for p in pts],
             y=y_data,
@@ -68,7 +74,8 @@ def create_plot(data, metrics_to_plot, html_name) -> str:
     # style all the traces
     fig.update_traces(
         hoverinfo="name+x+text",
-        line=dict(width=1.5, shape='spline'),
+        # https://plotly.com/python/line-charts/
+        line=dict(width=1.5, shape='hv'),
         marker={"size": 8},
         mode="lines+markers",
         showlegend=False
@@ -107,7 +114,7 @@ def create_plot(data, metrics_to_plot, html_name) -> str:
 def parse_date(s: Union[str, datetime]) -> datetime:
     if isinstance(s, datetime):
         return s
-    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y'):
+    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%m/%d/%Y'):
         try:
             return datetime.strptime(s, fmt).replace(tzinfo=DEFAULT_TIMEZONE)
         except ValueError:
@@ -124,7 +131,6 @@ DEFAULT_TIMEZONE = tz.gettz('PST')
 def main(start_date: str, end_date: str):
     start_date, end_date = parse_date(start_date), parse_date(end_date)
 
-
     creds = credentials.get_credentials([
         # If modifying scopes, delete the file token.pickle.
         'https://www.googleapis.com/auth/drive.readonly',
@@ -140,13 +146,9 @@ def main(start_date: str, end_date: str):
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'GPSLogger for Android'))
 
+    event_data = []
     sleep_data = cal_api_instance.get_events(
         cal_api_instance.get_calendar_id('Sleep'))
-    event_data = cronometer.parse_nutrition(spreadsheet_data)
-    event_data += cgm.parse_cgm(spreadsheet_data)
-    event_data += nomie.parse_nomie(spreadsheet_data)
-    event_data += gps.parse_gps(spreadsheet_data)
-
     for e in sleep_data:
         event_data.append(data_model.Event(
             timestamp=datetime.fromisoformat(e['start']['dateTime']),
@@ -156,11 +158,21 @@ def main(start_date: str, end_date: str):
             timestamp=datetime.fromisoformat(e['end']['dateTime']),
             data={'description': e.get('description', ''), 'asleep': 0},
         ))
+    event_data += cronometer.parse_nutrition(spreadsheet_data)
+    event_data += cgm.parse_cgm(spreadsheet_data)
+    event_data += nomie.parse_nomie(spreadsheet_data)
+    event_data += gps.parse_gps(spreadsheet_data)
+    event_data += activitywatch.get_events(
+        os.path.expanduser(
+            '~/.local/share/activitywatch/aw-server/peewee-sqlite.v2.db'))
 
-    # If events don't have a timezone, assume DEFAULT_TIMEZONE
+
+    # If events don't have a timezone, assume DEFAULT_TIMEZONE.
+    # Then, shift all times to the DEFAULT_TIMEZONE.
     for e in event_data:
         if e.timestamp.tzinfo is None:
             e.timestamp = e.timestamp.replace(tzinfo=DEFAULT_TIMEZONE)
+        e.timestamp = e.timestamp.astimezone(tz=DEFAULT_TIMEZONE)
 
     # Filter events by date
     event_data = [e for e in event_data if start_date < e.timestamp < end_date]
@@ -169,7 +181,7 @@ def main(start_date: str, end_date: str):
     create_plot(
         event_data, [
             'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
-            'weight', 'speed'
+            'weight', 'speed', 'using'
         ],
         'out.html')
 
