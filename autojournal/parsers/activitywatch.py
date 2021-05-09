@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 import sqlite3
 from typing import Dict, List, Any
 
@@ -34,12 +35,34 @@ def get_events(db_file: str) -> List[Event]:
             # Ignore all statuses other than "not-afk"
             if data['status'] != 'not-afk':
                 continue
-            start_event.data['using'] = 1
-            end_event.data['using'] = 0
+            start_event.data['using_laptop'] = 1
+            end_event.data['using_laptop'] = 0
         elif buckets_by_id[bid].startswith('aw-watcher-window'):
             start_event.data.update(data)
             end_event.data.update(data)
         events.append(start_event)
         events.append(end_event)
 
+    return events
+
+
+def get_events_from_json(raw_json: str) -> List[Event]:
+    data = json.loads(raw_json)
+    events = []
+    base_data = dict(
+        device=data['buckets']['aw-watcher-android-test']['hostname'],
+    )
+    for use in data['buckets']['aw-watcher-android-test']['events']:
+        parsed_time = datetime.fromisoformat(
+            use['timestamp'].replace('Z', '+00:00'))
+        # Start event
+        events.append(Event(
+            timestamp=parsed_time,
+            data={**base_data, 'app': use['data']['app'], 'using_phone': 1},
+        ))
+        # End event
+        events.append(Event(
+            timestamp=parsed_time + timedelta(seconds=use['duration']),
+            data={**base_data, 'app': use['data']['app'], 'using_phone': 0},
+        ))
     return events

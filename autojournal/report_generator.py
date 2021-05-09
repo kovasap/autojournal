@@ -139,33 +139,35 @@ def main(start_date: str, end_date: str):
     drive_api_instance = drive_api.DriveApi(creds)
     cal_api_instance = calendar_api.CalendarApi(creds)
 
-    spreadsheet_data = drive_api_instance.read_all_spreadsheet_data(
-        'activitywatch-data')
-    spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-        'medical-records'))
-    spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-        'GPSLogger for Android'))
-
     event_data = []
-    sleep_data = cal_api_instance.get_events(
-        cal_api_instance.get_calendar_id('Sleep'))
-    for e in sleep_data:
-        event_data.append(data_model.Event(
-            timestamp=datetime.fromisoformat(e['start']['dateTime']),
-            data={'description': e.get('description', ''), 'asleep': 1},
-        ))
-        event_data.append(data_model.Event(
-            timestamp=datetime.fromisoformat(e['end']['dateTime']),
-            data={'description': e.get('description', ''), 'asleep': 0},
-        ))
-    event_data += cronometer.parse_nutrition(spreadsheet_data)
-    event_data += cgm.parse_cgm(spreadsheet_data)
-    event_data += nomie.parse_nomie(spreadsheet_data)
-    event_data += gps.parse_gps(spreadsheet_data)
-    event_data += activitywatch.get_events(
-        os.path.expanduser(
-            '~/.local/share/activitywatch/aw-server/peewee-sqlite.v2.db'))
-
+    spreadsheet_data = {}
+    # sleep_data = cal_api_instance.get_events(
+    #     cal_api_instance.get_calendar_id('Sleep'))
+    # for e in sleep_data:
+    #     event_data.append(data_model.Event(
+    #         timestamp=datetime.fromisoformat(e['start']['dateTime']),
+    #         data={'description': e.get('description', ''), 'asleep': 1},
+    #     ))
+    #     event_data.append(data_model.Event(
+    #         timestamp=datetime.fromisoformat(e['end']['dateTime']),
+    #         data={'description': e.get('description', ''), 'asleep': 0},
+    #     ))
+    # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+    #     'activitywatch-data'))
+    # event_data += cronometer.parse_nutrition(spreadsheet_data)
+    # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+    #     'medical-records'))
+    # event_data += cgm.parse_cgm(spreadsheet_data)
+    # event_data += nomie.parse_nomie(spreadsheet_data)
+    # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+    #     'GPSLogger for Android'))
+    # event_data += gps.parse_gps(spreadsheet_data)
+    # event_data += activitywatch.get_events(
+    #     os.path.expanduser(
+    #         '~/.local/share/activitywatch/aw-server/peewee-sqlite.v2.db'))
+    for file_lines in drive_api_instance.read_files(
+            'activitywatch-phone-data').values():
+        event_data += activitywatch.get_events_from_json('\n'.join(file_lines))
 
     # If events don't have a timezone, assume DEFAULT_TIMEZONE.
     # Then, shift all times to the DEFAULT_TIMEZONE.
@@ -181,7 +183,7 @@ def main(start_date: str, end_date: str):
     create_plot(
         event_data, [
             'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
-            'weight', 'speed', 'using'
+            'weight', 'speed', 'using_laptop', 'using_phone'
         ],
         'out.html')
 
