@@ -24,8 +24,16 @@ bs4 = "^0.0.1"
 lxml = "^4.6.3"
 psutil = "^5.8.0"
 selfspy = {git = "https://github.com/kovasap/selfspy.git", branch="master"}
+yapf = "^0.31.0"
 
 [tool.poetry.dev-dependencies]
+
+[tool.yapf]
+based_on_style = "google"
+indent_width = 2
+
+[tool.pylint]
+indent-string = '  '
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
