@@ -104,3 +104,7 @@ should be able to ssh into the instance with:
 ```
 gcloud compute ssh kovas
 ```
+
+## Other Inspiration
+
+https://karpathy.github.io/2014/08/03/quantifying-productivity/
