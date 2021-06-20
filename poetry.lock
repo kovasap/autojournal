@@ -399,6 +399,14 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 six = ">=1.5"
 
 [[package]]
+name = "python3-xlib"
+version = "0.15"
+description = "Python3 X Library"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pytz"
 version = "2021.1"
 description = "World timezone definitions, modern and historical"
@@ -577,7 +585,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "c927cb0442f26ff917cb9f35dc2de8feee4ba5dbcaf9638d1c089a5cd4dc98bc"
+content-hash = "56d173bab5dff93cb4bb2f6445bb3bf6035906ca19c50e9f46cb6fcfb9bef261"
 
 [metadata.files]
 beautifulsoup4 = [
@@ -892,6 +900,9 @@ pyparsing = [
 python-dateutil = [
     {file = "python-dateutil-2.8.1.tar.gz", hash = "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c"},
     {file = "python_dateutil-2.8.1-py2.py3-none-any.whl", hash = "sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a"},
+]
+python3-xlib = [
+    {file = "python3-xlib-0.15.tar.gz", hash = "sha256:dc4245f3ae4aa5949c1d112ee4723901ade37a96721ba9645f2bfa56e5b383f8"},
 ]
 pytz = [
     {file = "pytz-2021.1-py2.py3-none-any.whl", hash = "sha256:eb10ce3e7736052ed3623d49975ce333bcd712c7bb19a58b9e2089d4057d0798"},

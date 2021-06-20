@@ -25,6 +25,7 @@ lxml = "^4.6.3"
 psutil = "^5.8.0"
 selfspy = {git = "https://github.com/kovasap/selfspy.git", branch="master"}
 yapf = "^0.31.0"
+python3-xlib = "^0.15"
 
 [tool.poetry.dev-dependencies]
 
