@@ -20,7 +20,15 @@ source $(poetry env info --path)/bin/activate
 
 to get into the poetry virtualenv to run scripts.
 
-## Frontend Idea
+## TODOs
+
+### Better Location Data
+
+Get data from Android GPSLogger files stored in google drive and [tag
+it](https://stackoverflow.com/questions/3513134/how-to-reverse-geocode-without-google)
+instead of using the hacky maps timeline system.
+
+### Frontend Idea
 
 Create a histogram-timeline using
 [d3js](https://www.d3-graph-gallery.com/graph/density_basic.html) that all data
@@ -42,6 +50,9 @@ For plotting GPS logs:
  - [Google maps python API](https://github.com/googlemaps/google-maps-services-python)
  - [QGIS open source mapping project](https://qgis.org/en/site/about/index.html)
  - **[folium](https://github.com/python-visualization/folium)**
+
+This could generate an HTML report that would be automatically emailed to me
+every week.
 
 ## Google Photos to Calendar Syncer
 
