@@ -20,6 +20,14 @@ source $(poetry env info --path)/bin/activate
 
 to get into the poetry virtualenv to run scripts.
 
+### Raspberry Pi
+
+Requires additional installs before poetry install:
+
+```
+sudo apt-get install python-dev libatlas-base-dev
+```
+
 ## TODOs
 
 ### Better Location Data
