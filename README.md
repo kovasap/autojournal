@@ -9,6 +9,8 @@ desired.
 Run:
 
 ```
+# Required for selfspy dependency.
+sudo apt-get install python-tk
 poetry install
 ```
 
