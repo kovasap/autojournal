@@ -3,7 +3,7 @@ from pprint import pprint
 import pandas as pd
 from datetime import datetime, timedelta
 
-from maps_location_history.process_location import get_kml_file, full_df
+from .process_location import get_kml_file, full_df
 
 from . import calendar_api
 from . import utils
@@ -57,8 +57,12 @@ KML_OUTPUT_DIRECTORY = '/home/kovas/autojournal/location_data/'
 
 
 def make_events_from_kml_data(start_date, end_date, timezone_name='America/Los_Angeles'):
-  with open(COOKIE_FILE, 'r') as f:
-    cookie_content = f.read().strip()
+  try:
+    with open(COOKIE_FILE, 'r') as f:
+      cookie_content = f.read().strip()
+  except FileNotFoundError:
+    print('No cookie for maps timeline data!')
+    return []
   kml_files = []
   for date in pd.date_range(start=start_date, end=end_date):
     kml_files.append(
