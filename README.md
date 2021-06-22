@@ -107,11 +107,10 @@ Also try using nomie.app to track activity.
 
 ## Cron
 
-Add this command to run every hour, assuming you installed this script
-using the `photos_calendar_sync` virtualenv.
+Add this command to run every other hour, assuming you cloned this project to `~/autojournal`.
 
 ```
-0 * * * * cd /home/kovas/photos_calendar_sync && /home/kovas/.virtualenvs/photos_calendar_sync/bin/python photos_calendar_syncer.py --update all >> photos_calendar_sync_cron.log
+0 */2 * * * ~/autojournal/run_gcal_aggregator.bash
 ```
 
 Check out this article for ideas about other kinds of tracking on Google Calendar: https://towardsdatascience.com/andorid-activity-1ecc454c636c
