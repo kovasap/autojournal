@@ -63,7 +63,7 @@ class PhoneSession:
         else:
             percent_active = round(
                 100 * (used_secs / (unused_secs + used_secs)), 1)
-        return calendar_api.Event(
+        return calendar_api.CalendarEvent(
             start=dict(dateTime=self.start_time.isoformat(),
                        timeZone='America/Los_Angeles'),
             end=dict(dateTime=self.end_time.isoformat(),

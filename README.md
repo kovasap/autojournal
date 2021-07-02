@@ -22,6 +22,13 @@ source $(poetry env info --path)/bin/activate
 
 to get into the poetry virtualenv to run scripts.
 
+To run once a day at 10pm, run `crontab -e` and add this snippet (assuming you
+cloned autojournal into your home directory ~/):
+
+```
+0 22 * * * (cd ~/autojournal; nohup poetry run gcal_aggregator --update all &> ~/autojournal.log &)
+```
+
 ### Raspberry Pi
 
 Requires additional installs before poetry install:
@@ -34,9 +41,8 @@ sudo apt-get install python-dev libatlas-base-dev
 
 ### Better Location Data
 
-Get data from Android GPSLogger files stored in google drive and [tag
-it](https://stackoverflow.com/questions/3513134/how-to-reverse-geocode-without-google)
-instead of using the hacky maps timeline system.
+Could use ML to judge mode of travel better like these guys:
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5620731/.
 
 ### Frontend Idea
 

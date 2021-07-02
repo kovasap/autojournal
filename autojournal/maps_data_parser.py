@@ -21,7 +21,7 @@ def parse_semantic_location_history(lines_by_filename):
       # These dicts should have a single key
       obj_type = next(iter(o.keys()))
       obj = o[obj_type]
-      events.append(calendar_api.Event(
+      events.append(calendar_api.CalendarEvent(
         start=utils.timestamp_ms_to_event_time(
           int(obj['duration']['startTimestampMs'])),
         end=utils.timestamp_ms_to_event_time(
@@ -78,7 +78,7 @@ def make_events_from_kml_data(start_date, end_date, timezone_name='America/Los_A
       events[-1]['end'] = utils.utc_to_timezone(row.RawEndTime,
                             timezone_name)
     else:
-      events.append(calendar_api.Event(
+      events.append(calendar_api.CalendarEvent(
         start=utils.utc_to_timezone(row.RawBeginTime, timezone_name),
         end=utils.utc_to_timezone(row.RawEndTime, timezone_name),
         summary=(

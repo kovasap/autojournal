@@ -13,11 +13,12 @@ from . import drive_api
 from . import app_usage_output_parser
 from . import maps_data_parser
 from . import utils
+from .parsers import gps
 
 
 def photos_to_event(photos: photos_api.mediaItem,
-          event_length_mins: int = 15) -> calendar_api.Event:
-  return calendar_api.Event(
+          event_length_mins: int = 15) -> calendar_api.CalendarEvent:
+  return calendar_api.CalendarEvent(
     start=utils.utc_to_timezone(
       photos[0]['mediaMetadata']['creationTime']),
     end=utils.utc_to_timezone(photos[-1]['mediaMetadata']['creationTime'],
@@ -100,8 +101,8 @@ def main():
       key=lambda photo: datetime.fromisoformat(
         photo['mediaMetadata']['creationTime'].rstrip('Z')))
     food_events = [photos_to_event(photos) for photos in grouped_photos]
-    cal_api_instance.add_events(calendars['food'], food_events,
-                  **cal_mod_args)
+    cal_api_instance.add_events(
+        calendars['food'], food_events, **cal_mod_args)
 
   # Add laptop activity from selfspy
   if 'all' in args.update or 'laptop' in args.update:
@@ -143,13 +144,23 @@ def main():
     #   maps_location_history_files)
 
     # Directly from timeline web "API"
-    location_events = maps_data_parser.make_events_from_kml_data(
-      '2019-09-01',
-      # Get data from yesterday only so that the data from today is fully
-      # populated before we send it off to the calendar.
-      date.today() - timedelta(days=1))
+    # location_events = maps_data_parser.make_events_from_kml_data(
+    #   '2019-09-01',
+    #   # Get data from yesterday only so that the data from today is fully
+    #   # populated before we send it off to the calendar.
+    #   date.today() - timedelta(days=1))
+    # cal_api_instance.add_events(calendars['maps'], location_events,
+    #               **cal_mod_args)
+    spreadsheet_data = drive_api_instance.read_all_spreadsheet_data(
+        'GPS TESTING')
+        # 'GPSLogger for Android')
+    location_events = [
+        e.to_calendar_event() for e in gps.parse_gps(spreadsheet_data)]
     cal_api_instance.add_events(calendars['maps'], location_events,
-                  **cal_mod_args)
+        **cal_mod_args)
+    
+
+    # From GPSLogger files in Google Drive
 
   # TODO add journal entries
 

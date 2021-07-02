@@ -26,6 +26,7 @@ psutil = "^5.8.0"
 selfspy = {git = "https://github.com/kovasap/selfspy.git", branch="master"}
 yapf = "^0.31.0"
 python3-xlib = "^0.15"
+geopy = "^2.1.0"
 
 [tool.poetry.dev-dependencies]
 
