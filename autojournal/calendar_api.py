@@ -8,6 +8,13 @@ CalendarEvent = dict
 # https://developers.google.com/calendar/v3/reference/calendarList
 CalendarList = dict
 
+def print_event(e: CalendarEvent) -> str:
+  start = datetime.fromisoformat(
+      e['start']['dateTime']).strftime('%m/%d/%Y %I:%M%p')
+  end = datetime.fromisoformat(
+      e['end']['dateTime']).strftime('%m/%d/%Y %I:%M%p')
+  print(f'{start} - {end} {e["summary"]}')
+
 EVENT_DESCRIPTION_LENGTH_LIMIT = 8100  # characters
 
 
@@ -128,8 +135,9 @@ class CalendarApi(object):
 
 def print_events(events):
   for e in events:
-    pprint(e)
-    print('--------------------------------------')
+    # pprint(e)
+    # print('--------------------------------------')
+    print_event(e)
 
 
 def filter_events(events, start_datetime=None, end_datetime=None):

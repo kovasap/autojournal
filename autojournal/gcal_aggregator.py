@@ -130,9 +130,9 @@ def main():
     android_events = app_usage_output_parser.create_events(
       # Combine all "Activity" csvs in directory into single datastream.
       reduce(list.__add__, [v for k, v in android_activity_files.items()
-                  if 'usage_events' in k]))
+                            if 'usage_events' in k]))
     cal_api_instance.add_events(calendars['phone'], android_events,
-                  **cal_mod_args)
+                                **cal_mod_args)
 
   # Add locations and travel from Google Maps Location History
   if 'all' in args.update or 'maps' in args.update:
