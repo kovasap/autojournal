@@ -22,6 +22,9 @@ STATIONARY_TIME_BETWEEN_TRIPS_SECS = 60 * 5
 location_bank = []
 nominatim = geopy.geocoders.Nominatim(user_agent='autojournal')
 
+def make_float(s: str) -> float:
+  return float(s) if s else 0.0
+
 @dataclass
 class Location:
   """Stores location data."""
@@ -37,11 +40,11 @@ class Location:
   @classmethod
   def from_line(cls, line: dict) -> 'Location':
     return cls(
-        latitude=line['lat'],
-        longitude=line['lon'],
-        elevation=line['elevation'],
-        accuracy_miles=line['accuracy'] / 1609.34,  # meters -> miles
-        speed=line['speed'])
+        latitude=make_float(line['lat']),
+        longitude=make_float(line['lon']),
+        elevation=make_float(line['elevation']),
+        accuracy_miles=make_float(line['accuracy']) / 1609.34,  # meters -> miles
+        speed=make_float(line['speed']))
 
   def summary(self) -> str:
     if self.mode_of_travel:
