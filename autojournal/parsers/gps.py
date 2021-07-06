@@ -86,6 +86,8 @@ def get_traveling_description(
       for i, (timestamp, location) in enumerate(zip(timestamps, locations))
       if i > 0
   ]
+  if not mph_speeds:
+    return 'not enough data'
   average_mph_speed = statistics.mean(mph_speeds)
   stdev_mph_speed = statistics.stdev(mph_speeds)
   max_mph_speed = max(mph_speeds)
@@ -119,12 +121,13 @@ def make_calendar_event(
       description='')
 
 
-def find_breakpoints(locations: List[Location], num_buffer_points: int=3):
+def find_breakpoints(locations: List[Location], num_buffer_points: int=6):
   """Finds sections of input list where location is different."""
+  assert num_buffer_points % 2 == 0
   transitions_to_travel = set()
   transitions_to_stationary = set()
   were_travelling = False
-  for i, location in enumerate(locations):
+  for i, _ in enumerate(locations):
     if i < num_buffer_points:
       continue
     buffer_locations = [locations[i + j - num_buffer_points]
@@ -136,10 +139,10 @@ def find_breakpoints(locations: List[Location], num_buffer_points: int=3):
             buffer_locations[j + (num_buffer_points // 2)])
         for j in range(len(buffer_locations) // 2))
     if not were_travelling and currently_travelling:
-      transitions_to_travel.add(i-num_buffer_points)
+      transitions_to_travel.add(i - (num_buffer_points // 2))
       were_travelling = True
     elif were_travelling and not currently_travelling:
-      transitions_to_stationary.add(i-num_buffer_points)
+      transitions_to_stationary.add(i - (num_buffer_points // 2))
       were_travelling = False
   return transitions_to_travel, transitions_to_stationary
 
@@ -176,9 +179,10 @@ def parse_gps(data_by_fname) -> List[Event]:
       # event and reset our event lists.
       if i > 0 and (i in transitions_to_travel or i in transitions_to_stationary):
         events.append(make_calendar_event(event_timestamps, event_locations,
-                                          i in transitions_to_travel))
+                                          i in transitions_to_stationary))
         event_timestamps = []
         event_locations = []
       event_timestamps.append(timestamp)
       event_locations.append(location)
+  events.append(make_calendar_event(event_timestamps, event_locations, False))
   return events
