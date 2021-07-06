@@ -90,7 +90,9 @@ def get_traveling_description(
   stdev_mph_speed = statistics.stdev(mph_speeds)
   max_mph_speed = max(mph_speeds)
   # https://www.bbc.co.uk/bitesize/guides/zq4mfcw/revision/1
-  if average_mph_speed < 5 and max_mph_speed < 7:
+  if average_mph_speed < 2:
+    mode_of_travel = 'not travelling?'
+  elif average_mph_speed < 4 and max_mph_speed < 7:
     mode_of_travel = 'walking'
   elif average_mph_speed < 13 and max_mph_speed < 16:
     mode_of_travel = 'running'
@@ -117,42 +119,66 @@ def make_calendar_event(
       description='')
 
 
+def find_breakpoints(locations: List[Location], num_buffer_points: int=3):
+  """Finds sections of input list where location is different."""
+  transitions_to_travel = set()
+  transitions_to_stationary = set()
+  were_travelling = False
+  for i, location in enumerate(locations):
+    if i < num_buffer_points:
+      continue
+    buffer_locations = [locations[i + j - num_buffer_points]
+                        for j in range(num_buffer_points)]
+    # If we are in a different place num_buffer_points/2 later, we are
+    # travelling.
+    currently_travelling = all(
+        not buffer_locations[j].is_same_place(
+            buffer_locations[j + (num_buffer_points // 2)])
+        for j in range(len(buffer_locations) // 2))
+    if not were_travelling and currently_travelling:
+      transitions_to_travel.add(i-num_buffer_points)
+      were_travelling = True
+    elif were_travelling and not currently_travelling:
+      transitions_to_stationary.add(i-num_buffer_points)
+      were_travelling = False
+  return transitions_to_travel, transitions_to_stationary
+
 
 def parse_gps(data_by_fname) -> List[Event]:
-  last_location = None
-  pending_event_is_travel = False
   event_timestamps = []
   event_locations = []
   events = []
-  for fname, data in data_by_fname.items():
+  for fname, data in sorted(data_by_fname.items(), key=lambda t: t[0]):
     if not fname.endswith('.zip'):
       continue
+    line_locations = []
+    line_timestamps = []
     for line in data:
-      line_location = Location.from_line(line)
-      line_timestamp = datetime.fromisoformat(
-          line['time'].replace('Z', '+00:00'))
-      if last_location:
+      line_locations.append(Location.from_line(line))
+      line_timestamps.append(datetime.fromisoformat(
+          line['time'].replace('Z', '+00:00')).astimezone(tz.gettz('PST')))
+    transitions_to_travel, transitions_to_stationary = find_breakpoints(
+        line_locations)
+    print(transitions_to_travel, transitions_to_stationary)
+    for i, (location, timestamp) in enumerate(zip(line_locations, line_timestamps)):
+      if i > 0:
+        # if location.speed > 0:
         print(
-            line_timestamp.replace(tzinfo=tz.gettz('PST')).strftime(
-                '%m/%d/%Y %I:%M%p'),
+            # .replace(tzinfo=tz.gettz('PST'))
+            timestamp.strftime('%m/%d/%Y %I:%M%p'),
             # str(line_location),
-            line['speed'],
-            round(last_location.get_distance(line_location), 2))
-      if not last_location:
-        last_location = line_location
-        continue
-      currently_traveling = last_location.is_same_place(line_location)
+            round(location.speed * 2.236, 2),  # m/s -> mph
+            round(line_locations[i-1].get_distance(location), 2),
+            line_locations[i-1].is_same_place(location),
+            'travel' if i in transitions_to_travel else '',
+            'station' if i in transitions_to_stationary else '')
       # If we were traveling, and now are not (or vice versa), we create a new
       # event and reset our event lists.
-      if (currently_traveling != pending_event_is_travel
-          and len(event_timestamps) > 2 and len(event_locations) > 2):
-        print(pending_event_is_travel)
-        events.append(make_calendar_event(
-            event_timestamps, event_locations, pending_event_is_travel))
+      if i > 0 and (i in transitions_to_travel or i in transitions_to_stationary):
+        events.append(make_calendar_event(event_timestamps, event_locations,
+                                          i in transitions_to_travel))
         event_timestamps = []
         event_locations = []
-        pending_event_is_travel = currently_traveling
-      event_timestamps.append(line_timestamp)
-      event_locations.append(line_location)
-      last_location = line_location
+      event_timestamps.append(timestamp)
+      event_locations.append(location)
   return events
