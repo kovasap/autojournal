@@ -37,6 +37,17 @@ Requires additional installs before poetry install:
 sudo apt-get install python-dev libatlas-base-dev
 ```
 
+## Nomie with Couchdb
+
+1. Setup couchdb on your machine (for me it's a raspberry pi:
+   https://andyfelong.com/2019/07/couchdb-2-1-on-raspberry-pi-raspbian-stretch/,
+   https://github.com/jguillod/couchdb-on-raspberry-pi#5-script-for-running-couchdb-on-boot).
+1. Follow
+   https://github.com/happydata/nomie-docs/blob/master/development/couchdb-setup.md
+
+Checkout this for coding help:
+https://colab.research.google.com/drive/1vKOHtu1cLgky6I_4W-aFBqq6e6Hb4qBA
+
 ## TODOs
 
 ### Better Location Data
@@ -108,8 +119,6 @@ Calculate total daily calories vs time of first meal.
 ## Additional Things to Track
 
 Try https://blog.luap.info/how-i-track-my-life.html.
-
-Also try using nomie.app to track activity.
 
 ## Cron
 
