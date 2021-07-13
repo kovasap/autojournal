@@ -81,6 +81,11 @@ For plotting GPS logs:
 This could generate an HTML report that would be automatically emailed to me
 every week.
 
+## GPS Logging
+
+Uses https://gpslogger.app/.  Note to make this work consistently, refer to
+https://gpslogger.app/#sometimestheappwillnotlogforlongperiodsoftime.
+
 ## Google Photos to Calendar Syncer
 
 When run, will make a calendar entry for every photo that exists in a given
