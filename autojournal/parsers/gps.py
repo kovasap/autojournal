@@ -6,8 +6,8 @@ Make sure that "gps" is the only source for data on the app (not "network").
 
 from dataclasses import dataclass
 from dateutil import tz
-from datetime import datetime
-from typing import List, Tuple, Sequence
+from datetime import datetime, timedelta
+from typing import List, Tuple, Sequence, Set, Optional
 import statistics
 
 import geopy.distance
@@ -78,6 +78,27 @@ class Location:
     return f'{self.as_point()}, {self.name}'
 
 
+def are_single_location(
+    locations: Sequence[Location], fraction_required: float=0.9,
+    samples: Optional[int]=None) -> bool:
+  sampled_locations = locations
+  if samples:
+    sample_spacing = len(locations) // samples
+    if sample_spacing > 0:
+      sampled_locations = [locations[i*sample_spacing] for i in range(samples)]
+  num_locations = len(sampled_locations)
+  total_num_matching = 0
+  for l1 in sampled_locations:
+    num_matching_l1 = 0
+    for l2 in sampled_locations:
+      if l1.is_same_place(l2):
+        num_matching_l1 += 1
+    if num_matching_l1 / num_locations > fraction_required:
+      total_num_matching += 1
+  return total_num_matching / num_locations > fraction_required
+
+
+
 def get_traveling_description(
     timestamps: Sequence[datetime], locations: Sequence[Location]) -> str:
   mph_speeds = [
@@ -121,7 +142,143 @@ def make_calendar_event(
       description='')
 
 
-def find_breakpoints(locations: List[Location], num_buffer_points: int=6):
+def find_breakpoints_2(timestamps: List[datetime], locations: List[Location],
+    window_size: timedelta=timedelta(minutes=5)
+    ) -> List[Tuple[datetime, str]]:
+  """Finds sections of input list where location is different."""
+  transitions: List[Tuple[datetime, str]] = []
+  last_stationary_window_timestamps = None
+  last_stationary_window_locations = None
+  window_timestamps = []
+  window_locations = []
+  for i, (timestamp, location) in enumerate(zip(timestamps, locations)):
+    if not window_locations:
+      window_timestamps.append(timestamp)
+      window_locations.append(location)
+      continue
+    cur_window_size = window_timestamps[-1] - window_timestamps[0]
+    if cur_window_size < window_size:
+      # See if adding a new timestamp will make the window too big.
+      new_window_size = timestamp - window_timestamps[0]
+      if new_window_size < window_size:
+        window_timestamps.append(timestamp)
+        window_locations.append(location)
+        continue
+    elif cur_window_size > window_size:
+      # See if removing the last timestamp will make the window too small.
+      new_window_size = window_timestamps[-1] - window_timestamps[1]
+      if new_window_size > window_size:
+        window_timestamps.pop(0)
+        window_locations.pop(0)
+        continue
+    if (window_timestamps[0] - last_stationary_window_timestamps[0]
+        > window_size):
+      if are_single_location(window_locations):
+        if transitions:
+          last_transition_time, _ = transitions[-1]
+          if window_timestamps[0] - last_transition_time > window_size:
+            transitions.add(window_timestamps[0])
+      else:
+        pass
+
+    # Advance the window by 1
+    window_timestamps.pop(0)
+    window_locations.pop(0)
+    window_timestamps.append(timestamp)
+    window_locations.append(location)
+  return transitions
+
+
+def find_breakpoints(timestamps: List[datetime], locations: List[Location],
+    window_size: timedelta=timedelta(minutes=4)
+    ) -> List[Tuple[datetime, str]]:
+  """Finds sections of input list where location is different."""
+
+  def get_window_size(ts: List[datetime]) -> timedelta:
+    if not ts:
+      return timedelta(seconds=0)
+    return ts[-1] - ts[0]
+  timestamp_windows = [[]]
+  location_windows = [[]]
+  for timestamp, location in zip(timestamps, locations):
+    if get_window_size(timestamp_windows[-1]) > window_size:
+      timestamp_windows.append([])
+      location_windows.append([])
+    timestamp_windows[-1].append(timestamp)
+    location_windows[-1].append(location)
+
+  events = []
+  cur_event_timestamps = []
+  cur_event_locations = []
+  stationary = True
+  for timestamp_window, location_window in zip(
+      timestamp_windows, location_windows):
+    cur_event_timestamps += timestamp_window
+    cur_event_locations += location_window
+    print(timestamp_window[0].strftime('%m/%d/%Y %I:%M%p'))
+    single_location = are_single_location(location_window)
+    if single_location != stationary:
+      events.append(make_calendar_event(
+          cur_event_timestamps, cur_event_locations,
+          travel_event=not stationary))
+      stationary = not stationary
+      cur_event_timestamps = []
+      cur_event_locations = []
+  events.append(make_calendar_event(
+      cur_event_timestamps, cur_event_locations,
+      travel_event=not stationary))
+  return events
+
+
+
+def parse_gps(data_by_fname) -> List[Event]:
+  # event_timestamps = []
+  # event_locations = []
+  events = []
+  for fname, data in sorted(data_by_fname.items(), key=lambda t: t[0]):
+    if not fname.endswith('.zip'):
+      continue
+    line_locations = []
+    line_timestamps = []
+    for line in data:
+      line_locations.append(Location.from_line(line))
+      line_timestamps.append(datetime.fromisoformat(
+          line['time'].replace('Z', '+00:00')).astimezone(tz.gettz('PST')))
+    events += find_breakpoints(line_timestamps, line_locations)
+    # last_transition = None
+    # next_transition = transitions[0]
+    # for i, (location, timestamp) in enumerate(zip(line_locations, line_timestamps)):
+    #   if i > 0:
+    #     # if location.speed > 0:
+    #     print(
+    #         # .replace(tzinfo=tz.gettz('PST'))
+    #         timestamp.strftime('%m/%d/%Y %I:%M%p'),
+    #         # str(line_location),
+    #         round(location.speed * 2.236, 2),  # m/s -> mph
+    #         round(line_locations[i-1].get_distance(location), 2),
+    #         line_locations[i-1].is_same_place(location),
+    #         'travel' if i in transitions_to_travel else '',
+    #         'station' if i in transitions_to_stationary else '')
+    #   # If we were traveling, and now are not (or vice versa), we create a new
+    #   # event and reset our event lists.
+    #   if not last_transition
+    #   if last_transition_idx == -1 or timestamp > transitions[last_transition_idx]:
+    #     pass
+    #   if i > 0 and (i in transitions_to_travel or i in transitions_to_stationary):
+    #     events.append(make_calendar_event(event_timestamps, event_locations,
+    #                                       i in transitions_to_stationary))
+    #     event_timestamps = []
+    #     event_locations = []
+    #   event_timestamps.append(timestamp)
+    #   event_locations.append(location)
+  # events.append(make_calendar_event(event_timestamps, event_locations, False))
+  return events
+
+
+
+## OBSELETE CODE
+
+def find_breakpoints_old(locations: List[Location], num_buffer_points: int=6):
   """Finds sections of input list where location is different."""
   assert num_buffer_points % 2 == 0
   transitions_to_travel = set()
@@ -147,42 +304,4 @@ def find_breakpoints(locations: List[Location], num_buffer_points: int=6):
   return transitions_to_travel, transitions_to_stationary
 
 
-def parse_gps(data_by_fname) -> List[Event]:
-  event_timestamps = []
-  event_locations = []
-  events = []
-  for fname, data in sorted(data_by_fname.items(), key=lambda t: t[0]):
-    if not fname.endswith('.zip'):
-      continue
-    line_locations = []
-    line_timestamps = []
-    for line in data:
-      line_locations.append(Location.from_line(line))
-      line_timestamps.append(datetime.fromisoformat(
-          line['time'].replace('Z', '+00:00')).astimezone(tz.gettz('PST')))
-    transitions_to_travel, transitions_to_stationary = find_breakpoints(
-        line_locations)
-    print(transitions_to_travel, transitions_to_stationary)
-    for i, (location, timestamp) in enumerate(zip(line_locations, line_timestamps)):
-      if i > 0:
-        # if location.speed > 0:
-        print(
-            # .replace(tzinfo=tz.gettz('PST'))
-            timestamp.strftime('%m/%d/%Y %I:%M%p'),
-            # str(line_location),
-            round(location.speed * 2.236, 2),  # m/s -> mph
-            round(line_locations[i-1].get_distance(location), 2),
-            line_locations[i-1].is_same_place(location),
-            'travel' if i in transitions_to_travel else '',
-            'station' if i in transitions_to_stationary else '')
-      # If we were traveling, and now are not (or vice versa), we create a new
-      # event and reset our event lists.
-      if i > 0 and (i in transitions_to_travel or i in transitions_to_stationary):
-        events.append(make_calendar_event(event_timestamps, event_locations,
-                                          i in transitions_to_stationary))
-        event_timestamps = []
-        event_locations = []
-      event_timestamps.append(timestamp)
-      event_locations.append(location)
-  events.append(make_calendar_event(event_timestamps, event_locations, False))
-  return events
+
