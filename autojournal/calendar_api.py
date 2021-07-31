@@ -29,7 +29,8 @@ def get_consistant_event_timing(event: CalendarEvent) -> Tuple[str, str]:
 
 def unique_event_key(event: CalendarEvent) -> str:
   """Returns a string that should uniquely identify an event."""
-  return '|'.join((event['description'],) + get_consistant_event_timing(event))
+  return '|'.join((event.get('description', ''),)
+                  + get_consistant_event_timing(event))
 
 
 def time_started_event_key(event: CalendarEvent) -> str:
