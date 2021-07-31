@@ -13,7 +13,7 @@ from . import drive_api
 from . import app_usage_output_parser
 from . import maps_data_parser
 from . import utils
-from .parsers import gps
+from .parsers import gps, nomie
 
 
 def photos_to_event(photos: photos_api.mediaItem,
@@ -37,6 +37,7 @@ calendars = {
   'phone': 'Android Activity',
   'maps': 'Locations and Travel',
   'food': 'Food',
+  'nomie': 'Nomie',
 }
 
 
@@ -134,7 +135,7 @@ def main():
     cal_api_instance.add_events(calendars['phone'], android_events,
                                 **cal_mod_args)
 
-  # Add locations and travel from Google Maps Location History
+  # Add locations and travel.
   if 'all' in args.update or 'maps' in args.update:
     # From Google Takeout files stored in Google Drive.
     # drive_api_instance = drive_api.DriveApi(creds)
@@ -151,16 +152,24 @@ def main():
     #   date.today() - timedelta(days=1))
     # cal_api_instance.add_events(calendars['maps'], location_events,
     #               **cal_mod_args)
+
+    # From GPSLogger files in Google Drive
     spreadsheet_data = drive_api_instance.read_all_spreadsheet_data(
-        'GPS TESTING')
-        # 'GPSLogger for Android')
+        'GPSLogger for Android')
+        # 'GPS TESTING')
     location_events = [
         e.to_calendar_event() for e in gps.parse_gps(spreadsheet_data)]
     cal_api_instance.add_events(calendars['maps'], location_events,
         **cal_mod_args)
     
+  # Add manually tracked event from Nomie
+  if 'all' in args.update or 'nomie' in args.update:
+    nomie_data = drive_api_instance.read_all_spreadsheet_data('Nomie')
+    nomie_events = [
+        e.to_calendar_event() for e in nomie.parse_nomie(nomie_data)]
+    cal_api_instance.add_events(calendars['nomie'], nomie_events,
+                                **cal_mod_args)
 
-    # From GPSLogger files in Google Drive
 
   # TODO add journal entries
 

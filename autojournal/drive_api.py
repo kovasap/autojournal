@@ -35,9 +35,13 @@ class DriveApi(object):
 
   def get_spreadsheet_data(self, file):
     if file['mimeType'] not in {
-        'text/comma-separated-values', 'text/csv', 'application/zip'}:
+        'text/comma-separated-values', 'text/csv', 'application/zip',
+        'text/tab-separated-values'}:
       print(f'File {file} not of supported type.')
       return []
+    delimiter = ','
+    if file['mimeType'] == 'text/tab-separated-values':
+      delimiter = '\t'
     get_media_kwargs = {}
     if file['mimeType'] == 'application/vnd.google-apps.spreadsheet':
       get_media_kwargs['mimeType'] = 'text/csv'
@@ -48,7 +52,7 @@ class DriveApi(object):
       dl_file = zipfile.ZipFile(dl_file).open(
         op.splitext(file.get('name'))[0] + '.csv')
     textio = io.TextIOWrapper(dl_file, encoding='utf-8')
-    return [row for row in csv.DictReader(textio)]
+    return [row for row in csv.DictReader(textio, delimiter=delimiter)]
 
   def download_file(self, file_id, **get_media_kwargs):
     request = self.service.files().get_media(

@@ -112,7 +112,7 @@ def get_traveling_description(
   stdev_mph_speed = statistics.stdev(mph_speeds)
   max_mph_speed = max(mph_speeds)
   # https://www.bbc.co.uk/bitesize/guides/zq4mfcw/revision/1
-  if average_mph_speed < 2:
+  if average_mph_speed < 0:
     mode_of_travel = 'not travelling?'
   elif average_mph_speed < 4 and max_mph_speed < 10:
     mode_of_travel = 'walking'
@@ -170,7 +170,6 @@ def make_events(timestamps: List[datetime], locations: List[Location],
   stationary = True
   for timestamp_window, location_window in zip(
       timestamp_windows, location_windows):
-    print(timestamp_window[0].strftime('%m/%d/%Y %I:%M%p'))
     single_location = are_single_location(location_window)
     if cur_event_timestamps and single_location != stationary:
       events.append(make_calendar_event(
@@ -188,8 +187,6 @@ def make_events(timestamps: List[datetime], locations: List[Location],
 
 
 def parse_gps(data_by_fname) -> List[Event]:
-  # event_timestamps = []
-  # event_locations = []
   events = []
   for fname, data in sorted(data_by_fname.items(), key=lambda t: t[0]):
     if not fname.endswith('.zip'):
@@ -201,4 +198,5 @@ def parse_gps(data_by_fname) -> List[Event]:
       line_timestamps.append(datetime.fromisoformat(
           line['time'].replace('Z', '+00:00')).astimezone(tz.gettz('PST')))
     events += make_events(line_timestamps, line_locations)
+    print(f'Finished parsing {fname}')
   return events
