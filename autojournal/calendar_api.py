@@ -4,14 +4,21 @@ from googleapiclient.discovery import build
 from pprint import pprint, pformat
 
 # https://developers.google.com/calendar/v3/reference/events
-Event = dict
+CalendarEvent = dict
 # https://developers.google.com/calendar/v3/reference/calendarList
 CalendarList = dict
+
+def print_event(e: CalendarEvent) -> str:
+  start = datetime.fromisoformat(
+      e['start']['dateTime']).strftime('%m/%d/%Y %I:%M%p')
+  end = datetime.fromisoformat(
+      e['end']['dateTime']).strftime('%m/%d/%Y %I:%M%p')
+  print(f'{start} - {end} {e["summary"]}')
 
 EVENT_DESCRIPTION_LENGTH_LIMIT = 8100  # characters
 
 
-def get_consistant_event_timing(event: Event) -> Tuple[str, str]:
+def get_consistant_event_timing(event: CalendarEvent) -> Tuple[str, str]:
   """Get start/end time strings that are consistant from a given event.
 
     Seconds can be rounded strangely by Google calendar, so we only compare up
@@ -20,12 +27,12 @@ def get_consistant_event_timing(event: Event) -> Tuple[str, str]:
   return (event['start']['dateTime'][:16], event['end']['dateTime'][:16])
 
 
-def unique_event_key(event: Event) -> str:
+def unique_event_key(event: CalendarEvent) -> str:
   """Returns a string that should uniquely identify an event."""
   return '|'.join((event['description'],) + get_consistant_event_timing(event))
 
 
-def time_started_event_key(event: Event) -> str:
+def time_started_event_key(event: CalendarEvent) -> str:
   """Returns a string that should uniquely identify an event."""
   return get_consistant_event_timing(event)[0]
 
@@ -35,7 +42,7 @@ class CalendarApi(object):
   def __init__(self, creds):
     self.service = build('calendar', 'v3', credentials=creds)
 
-  def get_events(self, calendar_id: str) -> List[Event]:
+  def get_events(self, calendar_id: str) -> List[CalendarEvent]:
     page_token = None
     events = []
     while page_token != '':
@@ -84,7 +91,7 @@ class CalendarApi(object):
 
   def add_events(self,
                  calendar_name: str,
-                 events: Iterable[Event],
+                 events: Iterable[CalendarEvent],
                  dry_run: bool = False,
                  **filter_args):
     calendar_id = self.get_calendar_id(calendar_name)
@@ -128,8 +135,9 @@ class CalendarApi(object):
 
 def print_events(events):
   for e in events:
-    pprint(e)
-    print('--------------------------------------')
+    # pprint(e)
+    # print('--------------------------------------')
+    print_event(e)
 
 
 def filter_events(events, start_datetime=None, end_datetime=None):

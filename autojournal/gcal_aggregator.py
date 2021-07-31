@@ -13,11 +13,12 @@ from . import drive_api
 from . import app_usage_output_parser
 from . import maps_data_parser
 from . import utils
+from .parsers import gps, nomie
 
 
 def photos_to_event(photos: photos_api.mediaItem,
-          event_length_mins: int = 15) -> calendar_api.Event:
-  return calendar_api.Event(
+          event_length_mins: int = 15) -> calendar_api.CalendarEvent:
+  return calendar_api.CalendarEvent(
     start=utils.utc_to_timezone(
       photos[0]['mediaMetadata']['creationTime']),
     end=utils.utc_to_timezone(photos[-1]['mediaMetadata']['creationTime'],
@@ -36,6 +37,7 @@ calendars = {
   'phone': 'Android Activity',
   'maps': 'Locations and Travel',
   'food': 'Food',
+  'nomie': 'Nomie',
 }
 
 
@@ -100,8 +102,8 @@ def main():
       key=lambda photo: datetime.fromisoformat(
         photo['mediaMetadata']['creationTime'].rstrip('Z')))
     food_events = [photos_to_event(photos) for photos in grouped_photos]
-    cal_api_instance.add_events(calendars['food'], food_events,
-                  **cal_mod_args)
+    cal_api_instance.add_events(
+        calendars['food'], food_events, **cal_mod_args)
 
   # Add laptop activity from selfspy
   if 'all' in args.update or 'laptop' in args.update:
@@ -129,11 +131,11 @@ def main():
     android_events = app_usage_output_parser.create_events(
       # Combine all "Activity" csvs in directory into single datastream.
       reduce(list.__add__, [v for k, v in android_activity_files.items()
-                  if 'usage_events' in k]))
+                            if 'usage_events' in k]))
     cal_api_instance.add_events(calendars['phone'], android_events,
-                  **cal_mod_args)
+                                **cal_mod_args)
 
-  # Add locations and travel from Google Maps Location History
+  # Add locations and travel.
   if 'all' in args.update or 'maps' in args.update:
     # From Google Takeout files stored in Google Drive.
     # drive_api_instance = drive_api.DriveApi(creds)
@@ -143,13 +145,31 @@ def main():
     #   maps_location_history_files)
 
     # Directly from timeline web "API"
-    location_events = maps_data_parser.make_events_from_kml_data(
-      '2019-09-01',
-      # Get data from yesterday only so that the data from today is fully
-      # populated before we send it off to the calendar.
-      date.today() - timedelta(days=1))
+    # location_events = maps_data_parser.make_events_from_kml_data(
+    #   '2019-09-01',
+    #   # Get data from yesterday only so that the data from today is fully
+    #   # populated before we send it off to the calendar.
+    #   date.today() - timedelta(days=1))
+    # cal_api_instance.add_events(calendars['maps'], location_events,
+    #               **cal_mod_args)
+
+    # From GPSLogger files in Google Drive
+    spreadsheet_data = drive_api_instance.read_all_spreadsheet_data(
+        'GPSLogger for Android')
+        # 'GPS TESTING')
+    location_events = [
+        e.to_calendar_event() for e in gps.parse_gps(spreadsheet_data)]
     cal_api_instance.add_events(calendars['maps'], location_events,
-                  **cal_mod_args)
+        **cal_mod_args)
+    
+  # Add manually tracked event from Nomie
+  if 'all' in args.update or 'nomie' in args.update:
+    nomie_data = drive_api_instance.read_all_spreadsheet_data('Nomie')
+    nomie_events = [
+        e.to_calendar_event() for e in nomie.parse_nomie(nomie_data)]
+    cal_api_instance.add_events(calendars['nomie'], nomie_events,
+                                **cal_mod_args)
+
 
   # TODO add journal entries
 

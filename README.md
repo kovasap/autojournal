@@ -22,6 +22,13 @@ source $(poetry env info --path)/bin/activate
 
 to get into the poetry virtualenv to run scripts.
 
+To run once a day at 10pm, run `crontab -e` and add this snippet (assuming you
+cloned autojournal into your home directory ~/):
+
+```
+0 22 * * * (cd ~/autojournal; nohup poetry run gcal_aggregator --update all &> ~/autojournal.log &)
+```
+
 ### Raspberry Pi
 
 Requires additional installs before poetry install:
@@ -30,13 +37,23 @@ Requires additional installs before poetry install:
 sudo apt-get install python-dev libatlas-base-dev
 ```
 
+## Nomie with Couchdb
+
+1. Setup couchdb on your machine (for me it's a raspberry pi:
+   https://andyfelong.com/2019/07/couchdb-2-1-on-raspberry-pi-raspbian-stretch/,
+   https://github.com/jguillod/couchdb-on-raspberry-pi#5-script-for-running-couchdb-on-boot).
+1. Follow
+   https://github.com/happydata/nomie-docs/blob/master/development/couchdb-setup.md
+
+Checkout this for coding help:
+https://colab.research.google.com/drive/1vKOHtu1cLgky6I_4W-aFBqq6e6Hb4qBA
+
 ## TODOs
 
 ### Better Location Data
 
-Get data from Android GPSLogger files stored in google drive and [tag
-it](https://stackoverflow.com/questions/3513134/how-to-reverse-geocode-without-google)
-instead of using the hacky maps timeline system.
+Could use ML to judge mode of travel better like these guys:
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5620731/.
 
 ### Frontend Idea
 
@@ -63,6 +80,11 @@ For plotting GPS logs:
 
 This could generate an HTML report that would be automatically emailed to me
 every week.
+
+## GPS Logging
+
+Uses https://gpslogger.app/.  Note to make this work consistently, refer to
+https://gpslogger.app/#sometimestheappwillnotlogforlongperiodsoftime.
 
 ## Google Photos to Calendar Syncer
 
@@ -102,8 +124,6 @@ Calculate total daily calories vs time of first meal.
 ## Additional Things to Track
 
 Try https://blog.luap.info/how-i-track-my-life.html.
-
-Also try using nomie.app to track activity.
 
 ## Cron
 

@@ -153,9 +153,9 @@ def main(start_date: str, end_date: str):
   #     'medical-records'))
   # event_data += cgm.parse_cgm(spreadsheet_data)
   # event_data += nomie.parse_nomie(spreadsheet_data)
-  # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-  #     'GPSLogger for Android'))
-  # event_data += gps.parse_gps(spreadsheet_data)
+  spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+      'GPSLogger for Android'))
+  event_data += gps.parse_gps(spreadsheet_data)
   # event_data += activitywatch.get_events(
   #     os.path.expanduser(
   #         '~/.local/share/activitywatch/aw-server/peewee-sqlite.v2.db'))
