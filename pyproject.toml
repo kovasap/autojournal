@@ -12,7 +12,7 @@ report_generator = "autojournal.report_generator:main"
 gcal_aggregator = "autojournal.gcal_aggregator:main"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.7"
 python-dateutil = "^2.8.1"
 google-auth-oauthlib = "^0.4.4"
 google-api-python-client = "^2.2.0"
