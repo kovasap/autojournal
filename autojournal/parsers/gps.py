@@ -16,7 +16,7 @@ import geopy.geocoders
 from ..data_model import Event
 
 # Distance between two readings for movement between them to be ignored.
-STATIONARY_DISTANCE_MILES = 0.1
+STATIONARY_DISTANCE_MILES = 0.05
 STATIONARY_TIME_BETWEEN_TRIPS_SECS = 60 * 5
 
 location_bank = []
@@ -98,7 +98,6 @@ def are_single_location(
   return total_num_matching / num_locations > fraction_required
 
 
-
 def get_traveling_description(
     timestamps: Sequence[datetime], locations: Sequence[Location]) -> str:
   mph_speeds = [
@@ -115,11 +114,11 @@ def get_traveling_description(
   # https://www.bbc.co.uk/bitesize/guides/zq4mfcw/revision/1
   if average_mph_speed < 2:
     mode_of_travel = 'not travelling?'
-  elif average_mph_speed < 4 and max_mph_speed < 7:
+  elif average_mph_speed < 4 and max_mph_speed < 10:
     mode_of_travel = 'walking'
   elif average_mph_speed < 13 and max_mph_speed < 16:
     mode_of_travel = 'running'
-  elif average_mph_speed < 25:
+  elif average_mph_speed < 25 and max_mph_speed < 20:
     mode_of_travel = 'biking'
   elif average_mph_speed < 100:
     mode_of_travel = 'driving'
@@ -142,55 +141,9 @@ def make_calendar_event(
       description='')
 
 
-def find_breakpoints_2(timestamps: List[datetime], locations: List[Location],
-    window_size: timedelta=timedelta(minutes=5)
-    ) -> List[Tuple[datetime, str]]:
-  """Finds sections of input list where location is different."""
-  transitions: List[Tuple[datetime, str]] = []
-  last_stationary_window_timestamps = None
-  last_stationary_window_locations = None
-  window_timestamps = []
-  window_locations = []
-  for i, (timestamp, location) in enumerate(zip(timestamps, locations)):
-    if not window_locations:
-      window_timestamps.append(timestamp)
-      window_locations.append(location)
-      continue
-    cur_window_size = window_timestamps[-1] - window_timestamps[0]
-    if cur_window_size < window_size:
-      # See if adding a new timestamp will make the window too big.
-      new_window_size = timestamp - window_timestamps[0]
-      if new_window_size < window_size:
-        window_timestamps.append(timestamp)
-        window_locations.append(location)
-        continue
-    elif cur_window_size > window_size:
-      # See if removing the last timestamp will make the window too small.
-      new_window_size = window_timestamps[-1] - window_timestamps[1]
-      if new_window_size > window_size:
-        window_timestamps.pop(0)
-        window_locations.pop(0)
-        continue
-    if (window_timestamps[0] - last_stationary_window_timestamps[0]
-        > window_size):
-      if are_single_location(window_locations):
-        if transitions:
-          last_transition_time, _ = transitions[-1]
-          if window_timestamps[0] - last_transition_time > window_size:
-            transitions.add(window_timestamps[0])
-      else:
-        pass
-
-    # Advance the window by 1
-    window_timestamps.pop(0)
-    window_locations.pop(0)
-    window_timestamps.append(timestamp)
-    window_locations.append(location)
-  return transitions
-
-
-def find_breakpoints(timestamps: List[datetime], locations: List[Location],
-    window_size: timedelta=timedelta(minutes=4)
+def make_events(timestamps: List[datetime], locations: List[Location],
+    window_size: timedelta=timedelta(minutes=2),
+    min_points_per_window: int=3,
     ) -> List[Tuple[datetime, str]]:
   """Finds sections of input list where location is different."""
 
@@ -198,10 +151,14 @@ def find_breakpoints(timestamps: List[datetime], locations: List[Location],
     if not ts:
       return timedelta(seconds=0)
     return ts[-1] - ts[0]
+
+  # Creates windows of window_size.  If a window has less than
+  # min_points_per_window, then we add more even if we go above window_size.
   timestamp_windows = [[]]
   location_windows = [[]]
   for timestamp, location in zip(timestamps, locations):
-    if get_window_size(timestamp_windows[-1]) > window_size:
+    if (get_window_size(timestamp_windows[-1]) > window_size and
+        len(timestamp_windows[-1]) >= min_points_per_window):
       timestamp_windows.append([])
       location_windows.append([])
     timestamp_windows[-1].append(timestamp)
@@ -213,22 +170,21 @@ def find_breakpoints(timestamps: List[datetime], locations: List[Location],
   stationary = True
   for timestamp_window, location_window in zip(
       timestamp_windows, location_windows):
-    cur_event_timestamps += timestamp_window
-    cur_event_locations += location_window
     print(timestamp_window[0].strftime('%m/%d/%Y %I:%M%p'))
     single_location = are_single_location(location_window)
-    if single_location != stationary:
+    if cur_event_timestamps and single_location != stationary:
       events.append(make_calendar_event(
           cur_event_timestamps, cur_event_locations,
           travel_event=not stationary))
       stationary = not stationary
       cur_event_timestamps = []
       cur_event_locations = []
+    cur_event_timestamps += timestamp_window
+    cur_event_locations += location_window
   events.append(make_calendar_event(
       cur_event_timestamps, cur_event_locations,
       travel_event=not stationary))
   return events
-
 
 
 def parse_gps(data_by_fname) -> List[Event]:
@@ -244,64 +200,5 @@ def parse_gps(data_by_fname) -> List[Event]:
       line_locations.append(Location.from_line(line))
       line_timestamps.append(datetime.fromisoformat(
           line['time'].replace('Z', '+00:00')).astimezone(tz.gettz('PST')))
-    events += find_breakpoints(line_timestamps, line_locations)
-    # last_transition = None
-    # next_transition = transitions[0]
-    # for i, (location, timestamp) in enumerate(zip(line_locations, line_timestamps)):
-    #   if i > 0:
-    #     # if location.speed > 0:
-    #     print(
-    #         # .replace(tzinfo=tz.gettz('PST'))
-    #         timestamp.strftime('%m/%d/%Y %I:%M%p'),
-    #         # str(line_location),
-    #         round(location.speed * 2.236, 2),  # m/s -> mph
-    #         round(line_locations[i-1].get_distance(location), 2),
-    #         line_locations[i-1].is_same_place(location),
-    #         'travel' if i in transitions_to_travel else '',
-    #         'station' if i in transitions_to_stationary else '')
-    #   # If we were traveling, and now are not (or vice versa), we create a new
-    #   # event and reset our event lists.
-    #   if not last_transition
-    #   if last_transition_idx == -1 or timestamp > transitions[last_transition_idx]:
-    #     pass
-    #   if i > 0 and (i in transitions_to_travel or i in transitions_to_stationary):
-    #     events.append(make_calendar_event(event_timestamps, event_locations,
-    #                                       i in transitions_to_stationary))
-    #     event_timestamps = []
-    #     event_locations = []
-    #   event_timestamps.append(timestamp)
-    #   event_locations.append(location)
-  # events.append(make_calendar_event(event_timestamps, event_locations, False))
+    events += make_events(line_timestamps, line_locations)
   return events
-
-
-
-## OBSELETE CODE
-
-def find_breakpoints_old(locations: List[Location], num_buffer_points: int=6):
-  """Finds sections of input list where location is different."""
-  assert num_buffer_points % 2 == 0
-  transitions_to_travel = set()
-  transitions_to_stationary = set()
-  were_travelling = False
-  for i, _ in enumerate(locations):
-    if i < num_buffer_points:
-      continue
-    buffer_locations = [locations[i + j - num_buffer_points]
-                        for j in range(num_buffer_points)]
-    # If we are in a different place num_buffer_points/2 later, we are
-    # travelling.
-    currently_travelling = all(
-        not buffer_locations[j].is_same_place(
-            buffer_locations[j + (num_buffer_points // 2)])
-        for j in range(len(buffer_locations) // 2))
-    if not were_travelling and currently_travelling:
-      transitions_to_travel.add(i - (num_buffer_points // 2))
-      were_travelling = True
-    elif were_travelling and not currently_travelling:
-      transitions_to_stationary.add(i - (num_buffer_points // 2))
-      were_travelling = False
-  return transitions_to_travel, transitions_to_stationary
-
-
-
