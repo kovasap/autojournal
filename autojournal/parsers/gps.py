@@ -116,7 +116,7 @@ def get_traveling_description(
     mode_of_travel = 'not travelling?'
   elif average_mph_speed < 4 and max_mph_speed < 10:
     mode_of_travel = 'walking'
-  elif average_mph_speed < 13 and max_mph_speed < 16:
+  elif average_mph_speed < 13 and max_mph_speed < 13:
     mode_of_travel = 'running'
   elif average_mph_speed < 25 and max_mph_speed < 20:
     mode_of_travel = 'biking'
