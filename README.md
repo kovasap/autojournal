@@ -4,6 +4,17 @@ Overarching goal is to provide a system that summarizes life events
 automatically, to augment your memory and allow for further analysis if
 desired.
 
+## Examples
+
+Just location events from a trip I went on:
+
+![travelling](example_location_calendar.png?raw=true "Locations")
+
+All events before the trip, showing usage of multiple different computers, and
+sleep:
+
+![computer usage](example_computer_usage_calendar.png?raw=true "All Events")
+
 ## Getting Started
 
 Run:
