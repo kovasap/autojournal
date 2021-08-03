@@ -15,6 +15,9 @@ sleep:
 
 ![computer usage](example_computer_usage_calendar.png?raw=true "All Events")
 
+These were generated with the help of [this blurring
+script](https://gist.github.com/IceCreamYou/4f085b180a1608b99cb2).
+
 ## Getting Started
 
 Run:
