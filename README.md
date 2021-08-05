@@ -161,4 +161,6 @@ gcloud compute ssh kovas
 
 ## Other Inspiration
 
+https://vimeo.com/99571921
+
 https://karpathy.github.io/2014/08/03/quantifying-productivity/
