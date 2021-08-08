@@ -15,6 +15,7 @@ from .parsers import cgm
 from .parsers import nomie
 from .parsers import gps
 from .parsers import activitywatch
+from .parsers import google_fit
 from . import data_model
 
 METRIC_COLORS = px.colors.sequential.Plasma
@@ -146,22 +147,24 @@ def main(start_date: str, end_date: str):
   #         timestamp=datetime.fromisoformat(e['end']['dateTime']),
   #         data={'description': e.get('description', ''), 'asleep': 0},
   #     ))
-  # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-  #     'activitywatch-data'))
-  # event_data += cronometer.parse_nutrition(spreadsheet_data)
-  # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-  #     'medical-records'))
-  # event_data += cgm.parse_cgm(spreadsheet_data)
-  # event_data += nomie.parse_nomie(spreadsheet_data)
   spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-      'GPSLogger for Android'))
-  event_data += gps.parse_gps(spreadsheet_data)
+      'cronometer'))
+  event_data += cronometer.parse_nutrition(spreadsheet_data)
+  spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+      'medical-records'))
+  event_data += cgm.parse_cgm(spreadsheet_data)
+  event_data += google_fit.parse_sessions(
+      drive_api_instance, 'google-fit-sessions')
+  # event_data += nomie.parse_nomie(spreadsheet_data)
+  # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
+  #     'GPSLogger for Android'))
+  # event_data += gps.parse_gps(spreadsheet_data)
   # event_data += activitywatch.get_events(
   #     os.path.expanduser(
   #         '~/.local/share/activitywatch/aw-server/peewee-sqlite.v2.db'))
-  for file_lines in drive_api_instance.read_files(
-      'activitywatch-phone-data').values():
-    event_data += activitywatch.get_events_from_json('\n'.join(file_lines))
+  # for file_lines in drive_api_instance.read_files(
+  #     'activitywatch-phone-data').values():
+  #   event_data += activitywatch.get_events_from_json('\n'.join(file_lines))
 
   # If events don't have a timezone, assume DEFAULT_TIMEZONE.
   # Then, shift all times to the DEFAULT_TIMEZONE.
@@ -176,7 +179,8 @@ def main(start_date: str, end_date: str):
 
   create_plot(event_data, [
       'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
-      'weight', 'speed', 'using_laptop', 'using_phone'
+      'weight', 'speed', 'using_laptop', 'using_phone',
+      'com.google.calories.expended'
   ], 'out.html')
 
   # TODO Rank activities by time spent in them here.
