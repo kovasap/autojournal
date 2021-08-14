@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from dateutil import tz
 import pickle
-from typing import Union
+from typing import Union, Iterable, List
 
 import click
 import plotly.graph_objects as go
@@ -17,7 +17,7 @@ from .parsers import nomie
 from .parsers import gps
 from .parsers import activitywatch
 from .parsers import google_fit
-from . import data_model
+from .data_model import Event
 
 METRIC_COLORS = px.colors.sequential.Plasma
 
@@ -30,7 +30,7 @@ LABEL_METRICS = {
 
 
 # Based on https://plotly.com/python/range-slider/.
-def create_plot(data, metrics_to_plot, html_name) -> str:
+def create_plot(data: Iterable[Event], metrics_to_plot: List[str], html_name: str) -> str:
   # Create figure
   fig = go.Figure()
 
@@ -73,6 +73,8 @@ def create_plot(data, metrics_to_plot, html_name) -> str:
   axis_domain_size = 1.0 / len(metrics_to_data)
   y_axes = {}
   for i, (m, pts) in enumerate(metrics_to_data.items()):
+    print(m)
+    print(pts[0])
     y_data = [p.data[m] for p in pts]
     y_str = '' if i == 0 else str(i + 1)
     fig.add_trace(
@@ -178,13 +180,13 @@ def main(start_date: str, end_date: str, use_cache: bool):
     sleep_data = cal_api_instance.get_events(
         cal_api_instance.get_calendar_id('Sleep'))
     for e in sleep_data:
-        event_data.append(data_model.Event(
+        event_data.append(Event(
             summary='',
             description='',
             timestamp=datetime.fromisoformat(e['start']['dateTime']),
             data={'description': e.get('description', ''), 'asleep': 1},
         ))
-        event_data.append(data_model.Event(
+        event_data.append(Event(
             summary='',
             description='',
             timestamp=datetime.fromisoformat(e['end']['dateTime']),
@@ -192,7 +194,8 @@ def main(start_date: str, end_date: str, use_cache: bool):
         ))
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'cronometer'))
-    event_data += cronometer.parse_nutrition(spreadsheet_data)
+    event_data += cronometer.parse_nutrition(
+        spreadsheet_data, daily_cumulative=True)
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'medical-records'))
     event_data += cgm.parse_cgm(spreadsheet_data)
