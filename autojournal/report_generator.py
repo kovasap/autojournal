@@ -1,4 +1,5 @@
 import os
+import copy
 from datetime import datetime
 from dateutil import tz
 import pickle
@@ -21,16 +22,10 @@ from .data_model import Event
 
 METRIC_COLORS = px.colors.sequential.Plasma
 
-# Map from metric names to other metric names that should be used as labels.
-LABEL_METRICS = {
-    'Energy (kcal)': ('Food Name', 'Amount'),
-    'Fiber (g)': ('Food Name', 'Amount'),
-    'asleep': ('description',),
-}
-
 
 # Based on https://plotly.com/python/range-slider/.
-def create_plot(data: Iterable[Event], metrics_to_plot: List[str], html_name: str) -> str:
+def create_plot(
+    data: Iterable[Event], metrics_to_plot: List[str], html_name: str) -> str:
   # Create figure
   fig = go.Figure()
 
@@ -73,8 +68,9 @@ def create_plot(data: Iterable[Event], metrics_to_plot: List[str], html_name: st
   axis_domain_size = 1.0 / len(metrics_to_data)
   y_axes = {}
   for i, (m, pts) in enumerate(metrics_to_data.items()):
-    print(m)
-    print(pts[0])
+    # print(m)
+    # for pt in pts:
+    #   print(pt.data['Day'], pt.data['Food Name'], pt.data['Energy (kcal)'])
     y_data = [p.data[m] for p in pts]
     y_str = '' if i == 0 else str(i + 1)
     fig.add_trace(
@@ -82,10 +78,7 @@ def create_plot(data: Iterable[Event], metrics_to_plot: List[str], html_name: st
             x=[p.timestamp for p in pts],
             y=y_data,
             name=m,
-            text=[
-                ', '.join(p.data.get(lm, '') for lm in LABEL_METRICS[m])
-                if m in LABEL_METRICS else str(p.data[m]) for p in pts
-            ],
+            text=[p.description for p in pts],
             yaxis=f'y{y_str}',
         ))
     y_axes[f'yaxis{y_str}'] = dict(
@@ -180,18 +173,18 @@ def main(start_date: str, end_date: str, use_cache: bool):
     sleep_data = cal_api_instance.get_events(
         cal_api_instance.get_calendar_id('Sleep'))
     for e in sleep_data:
-        event_data.append(Event(
-            summary='',
-            description='',
-            timestamp=datetime.fromisoformat(e['start']['dateTime']),
-            data={'description': e.get('description', ''), 'asleep': 1},
-        ))
-        event_data.append(Event(
-            summary='',
-            description='',
-            timestamp=datetime.fromisoformat(e['end']['dateTime']),
-            data={'description': e.get('description', ''), 'asleep': 0},
-        ))
+      event_data.append(Event(
+          summary='',
+          description='',
+          timestamp=datetime.fromisoformat(e['start']['dateTime']),
+          data={'description': e.get('description', ''), 'asleep': 1},
+      ))
+      event_data.append(Event(
+          summary='',
+          description='',
+          timestamp=datetime.fromisoformat(e['end']['dateTime']),
+          data={'description': e.get('description', ''), 'asleep': 0},
+      ))
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'cronometer'))
     event_data += cronometer.parse_nutrition(
@@ -199,8 +192,15 @@ def main(start_date: str, end_date: str, use_cache: bool):
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'medical-records'))
     event_data += cgm.parse_cgm(spreadsheet_data)
-    event_data += google_fit.parse_sessions(
+    fit_data = google_fit.parse_sessions(
         drive_api_instance, 'google-fit-sessions')
+    for e in fit_data:
+      start_event = copy.deepcopy(e)
+      event_data.append(start_event)
+      end_event = copy.deepcopy(e)
+      end_event.data['Burned Calories'] = 0.0
+      end_event.timestamp = e.timestamp + e.duration
+      event_data.append(end_event)
     # event_data += nomie.parse_nomie(spreadsheet_data)
     # spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
     #     'GPSLogger for Android'))
@@ -229,7 +229,7 @@ def main(start_date: str, end_date: str, use_cache: bool):
   create_plot(event_data, [
       'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
       'weight', 'speed', 'using_laptop', 'using_phone',
-      'com.google.calories.expended'
+      'Burned Calories'
   ], 'out.html')
 
   # TODO Rank activities by time spent in them here.

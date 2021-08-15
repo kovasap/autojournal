@@ -1,4 +1,5 @@
 from collections import defaultdict
+import copy
 from datetime import datetime
 from typing import List, Any, Union
 
@@ -40,16 +41,18 @@ def parse_time(time: str) -> datetime:
 
 
 def add_food(t, d, events, cur_day_events):
-  events.append(Event(summary='', description='', timestamp=t, data=d))
-  cur_data = cur_day_events[-1].data if len(cur_day_events) else {}
-  cur_day_events.append(Event(
-      summary='',
-      description='',
+  event = Event(
+      summary=f'{d["Food Name"]}, {d["Amount"]}',
+      description=f'{d["Food Name"]}, {d["Amount"]}',
       timestamp=t,
-      data={
-          k: (cur_data.get(k, 0) + float(v))
-          if is_numeric(v) else v
-          for k, v in d.items()}))
+      data=d)
+  events.append(event)
+  cur_data = cur_day_events[-1].data if len(cur_day_events) else {}
+  cur_day_event = copy.deepcopy(event)
+  cur_day_event.data = {k: (cur_data.get(k, 0) + float(v))
+                        if is_numeric(v) else v
+                        for k, v in d.items()}
+  cur_day_events.append(cur_day_event)
 
 
 def cast_food_value_type(name: str, value: str) -> Union[float, str]:

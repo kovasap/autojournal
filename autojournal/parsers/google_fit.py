@@ -34,38 +34,45 @@
 from datetime import datetime, timedelta
 from dateutil import tz
 import json
-from typing import Dict, List, Any
+from typing import List
 
 from ..data_model import Event
 
 
 METERS_IN_MILE = 1609
+METRIC_NAME_MAPS = {
+    'com.google.calories.expended': 'Burned Calories',
+    'com.google.distance.delta': 'Meters Travelled',
+    'com.google.speed.summary': 'Speed',
+}
 
 
 def get_agg_value(aggregate: dict) -> float:
   for key in ['floatValue', 'intValue']:
     if key in aggregate:
-      return float(aggregate[key])
+      return round(float(aggregate[key]), 1)
   raise Exception(f'Unknown key in aggregate {aggregate}')
+
 
 def activity_json_to_event(activity_json: str) -> Event:
   data = json.loads(activity_json)
   aggregates = {
-      agg['metricName']: get_agg_value(agg) for agg in data['aggregate']}
+      METRIC_NAME_MAPS.get(agg['metricName'], agg['metricName']):
+          get_agg_value(agg) for agg in data['aggregate']}
   if data['fitnessActivity'] in {'running', 'walking'}:
-    calories = aggregates['com.google.calories.expended']
-    speed = aggregates['com.google.speed.summary']
-    distance_mi = aggregates['com.google.distance.delta'] / METERS_IN_MILE
+    calories = aggregates['Burned Calories']
+    speed = aggregates['Speed']
+    distance_mi = round(aggregates['Meters Travelled'] / METERS_IN_MILE, 1)
     description = (
         f'{calories} cal burned {data["fitnessActivity"]} {distance_mi} mi '
         f'at {speed} m/s')
   else:
-    calories = aggregates['com.google.calories.expended']
+    calories = aggregates['Burned Calories']
     description = f'{calories} cal burned doing {data["fitnessActivity"]}'
   return Event(
       timestamp=datetime.fromisoformat(
-          data['startTime'].replace('Z',
-              '+00:00')).astimezone(tz.gettz('PST')),
+          data['startTime'].replace('Z', '+00:00')).astimezone(
+              tz.gettz('PST')),
       duration=timedelta(seconds=float(data['duration'].strip('s'))),
       data=aggregates,
       summary=data['fitnessActivity'],
@@ -76,4 +83,3 @@ def parse_sessions(drive_api_instance, directory) -> List[Event]:
   json_files = drive_api_instance.read_files(directory)
   return [activity_json_to_event('\n'.join(lines))
           for lines in json_files.values()]
-
