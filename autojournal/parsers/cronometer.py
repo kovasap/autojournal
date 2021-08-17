@@ -66,13 +66,45 @@ def cast_food_value_type(name: str, value: str) -> Union[float, str]:
     return value
 
 
+def _make_weight_event(daytime: str, data: dict) -> Event:
+  plottable_data = {f'{data["Metric"]} ({data["Unit"]})': data['Amount']}
+  return Event(
+      summary=f'{data["Metric"]}, {data["Amount"]}, {data["Unit"]}',
+      description=f'{data["Metric"]}, {data["Amount"]}, {data["Unit"]}',
+      timestamp=parse_time(daytime),
+      data=plottable_data)
+
+
+def parse_weight(weight_by_day) -> List[Event]:
+  events = []
+  for day, weights in weight_by_day.items():
+    if not weights:
+      continue
+    elif len(weights) == 1:
+      events.append(_make_weight_event(f'{day} 9:00am', weights[0]))
+    elif len(weights) == 2:
+      events.append(_make_weight_event(f'{day} 9:00am', weights[0]))
+      events.append(_make_weight_event(f'{day} 11:00pm', weights[1]))
+    elif len(weights) == 3:
+      events.append(_make_weight_event(f'{day} 9:00am', weights[0]))
+      events.append(_make_weight_event(f'{day} 12:00pm', weights[1]))
+      events.append(_make_weight_event(f'{day} 11:00pm', weights[2]))
+  return events
+
+
 def parse_nutrition(data_by_fname, daily_cumulative: bool = True
                     ) -> List[Event]:
+  events = []
+  daily_cum_events = []
+
+  weight_events = parse_weight(_get_data_by_day(
+      data_by_fname['biometrics.csv']))
+  events += weight_events
+  daily_cum_events += weight_events
+
   foods_by_day = _get_data_by_day(data_by_fname['servings.csv'])
   notes_by_day = _get_data_by_day(data_by_fname['notes.csv'])
 
-  events = []
-  daily_cum_events = []
   for day, foods in foods_by_day.items():
     # Convert to proper types, making empty strings 0 valued
     foods = [{k: cast_food_value_type(k, v) for k, v in f.items()}

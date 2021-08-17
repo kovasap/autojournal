@@ -20,7 +20,8 @@ from .parsers import activitywatch
 from .parsers import google_fit
 from .data_model import Event
 
-METRIC_COLORS = px.colors.sequential.Plasma
+METRIC_COLORS = px.colors.cyclical.mrybm * 2
+# METRIC_COLORS = px.colors.sequential.Electric * 2
 
 
 # Based on https://plotly.com/python/range-slider/.
@@ -80,6 +81,7 @@ def create_plot(
             name=m,
             text=[p.description for p in pts],
             yaxis=f'y{y_str}',
+            marker=dict(color=METRIC_COLORS[i]),
         ))
     y_axes[f'yaxis{y_str}'] = dict(
         anchor='x',
@@ -120,12 +122,12 @@ def create_plot(
 
   # Update layout
   fig.update_layout(
-      title='Time',
+      title='Glucose monitoring data',
       legend_title='Legend',
       dragmode='zoom',
       hovermode='closest',
       legend=dict(traceorder='reversed'),
-      height=1100,
+      height=2000,
       template='plotly_white',
       margin=dict(t=50, b=50),
   )
@@ -227,9 +229,12 @@ def main(start_date: str, end_date: str, use_cache: bool):
   event_data = sorted(event_data, key=lambda e: e.timestamp)
 
   create_plot(event_data, [
-      'Energy (kcal)', 'Fiber (g)', 'asleep', 'Historic Glucose mg/dL',
+      'Carbs (g)', 'Sugars (g)', 'Fat (g)', 'Fiber (g)',
+      'Monounsaturated (g)', 'Polyunsaturated (g)', 'Saturated (g)',
+      'Sodium (mg)',
+      'Weight (lbs)', 'Burned Calories',
+      'Energy (kcal)', 'asleep', 'Historic Glucose mg/dL',
       'weight', 'speed', 'using_laptop', 'using_phone',
-      'Burned Calories'
   ], 'out.html')
 
   # TODO Rank activities by time spent in them here.
