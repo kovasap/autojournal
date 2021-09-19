@@ -1,3 +1,4 @@
+import time
 from typing import List, Iterable, Tuple
 from datetime import datetime
 from googleapiclient.discovery import build
@@ -58,8 +59,19 @@ class CalendarApi(object):
     page_token = None
     while page_token != '':
       page_token = '' if not page_token else page_token
-      calendar_list = self.service.calendarList().list(
-          pageToken=page_token).execute()
+      sleep_time_secs = 30
+      num_retries = 5
+      for retry in range(num_retries):
+        try:
+          calendar_list = self.service.calendarList().list(
+              pageToken=page_token).execute()
+        except ConnectionResetError:
+          print(
+              f'Hit ConnectionResetError, sleeping for {sleep_time_secs}s, '
+              f'then trying again.. (attempt {retry}/{num_retries})')
+          time.sleep(sleep_time_secs)
+        else:
+          break
       calendars += calendar_list['items']
       page_token = calendar_list.get('nextPageToken', '')
     return calendars
