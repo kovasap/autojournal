@@ -4,6 +4,20 @@ Overarching goal is to provide a system that summarizes life events
 automatically, to augment your memory and allow for further analysis if
 desired.
 
+## Examples
+
+Just location events from a trip I went on:
+
+![travelling](example_location_calendar.png?raw=true "Locations")
+
+All events before the trip, showing usage of multiple different computers, and
+sleep:
+
+![computer usage](example_computer_usage_calendar.png?raw=true "All Events")
+
+These were generated with the help of [this blurring
+script](https://gist.github.com/IceCreamYou/4f085b180a1608b99cb2).
+
 ## Getting Started
 
 Run:
@@ -146,5 +160,7 @@ gcloud compute ssh kovas
 ```
 
 ## Other Inspiration
+
+https://vimeo.com/99571921
 
 https://karpathy.github.io/2014/08/03/quantifying-productivity/
