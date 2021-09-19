@@ -5,7 +5,8 @@ from dateutil import tz
 
 
 def retry_on_error(
-    function, errors=(ConnectionResetError, ), sleep_time_secs=3,
+    function, errors=(BrokenPipeError, ConnectionResetError, ),
+    sleep_time_secs=3,
     num_retries=5):
   last_error = None
   for retry in range(num_retries):
