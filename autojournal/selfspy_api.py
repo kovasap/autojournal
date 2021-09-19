@@ -282,6 +282,7 @@ def get_selfspy_usage_events(
   # db_name = 'test_selfspy_db/selfspy.sqlite'
   process = psutil.Process(os.getpid())
   print('mem used: ', process.memory_info().rss / 10**6, 'MB')
+  print('db ', db_name)
   window_sessions = get_window_sessions(db_name)
   print('mem used: ', process.memory_info().rss / 10**6, 'MB')
   if session_limit:
