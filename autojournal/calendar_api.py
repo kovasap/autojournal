@@ -4,10 +4,13 @@ from datetime import datetime
 from googleapiclient.discovery import build
 from pprint import pprint, pformat
 
+from . import utils
+
 # https://developers.google.com/calendar/v3/reference/events
 CalendarEvent = dict
 # https://developers.google.com/calendar/v3/reference/calendarList
 CalendarList = dict
+
 
 def print_event(e: CalendarEvent) -> str:
   start = datetime.fromisoformat(
@@ -15,6 +18,7 @@ def print_event(e: CalendarEvent) -> str:
   end = datetime.fromisoformat(
       e['end']['dateTime']).strftime('%m/%d/%Y %I:%M%p')
   print(f'{start} - {end} {e["summary"]}')
+
 
 EVENT_DESCRIPTION_LENGTH_LIMIT = 8100  # characters
 
@@ -48,8 +52,9 @@ class CalendarApi(object):
     page_token = None
     events = []
     while page_token != '':
-      response = self.service.events().list(calendarId=calendar_id,
-                                            pageToken=page_token).execute()
+      response = utils.retry_on_error(
+          self.service.events().list(calendarId=calendar_id,
+                                     pageToken=page_token).execute)
       events += response.get('items', [])
       page_token = response.get('nextPageToken', '')
     return events
@@ -59,19 +64,8 @@ class CalendarApi(object):
     page_token = None
     while page_token != '':
       page_token = '' if not page_token else page_token
-      sleep_time_secs = 30
-      num_retries = 5
-      for retry in range(num_retries):
-        try:
-          calendar_list = self.service.calendarList().list(
-              pageToken=page_token).execute()
-        except ConnectionResetError:
-          print(
-              f'Hit ConnectionResetError, sleeping for {sleep_time_secs}s, '
-              f'then trying again.. (attempt {retry}/{num_retries})')
-          time.sleep(sleep_time_secs)
-        else:
-          break
+      calendar_list = utils.retry_on_error(
+          self.service.calendarList().list(pageToken=page_token).execute)
       calendars += calendar_list['items']
       page_token = calendar_list.get('nextPageToken', '')
     return calendars
@@ -97,8 +91,10 @@ class CalendarApi(object):
       print_events(events)
     else:
       for i, e in enumerate(events):
-        self.service.events().delete(calendarId=calendar_id,
-                                     eventId=e['id']).execute()
+        utils.retry_on_error(
+            self.service.events().delete(
+                calendarId=calendar_id,
+                eventId=e['id']).execute)
         print(i, end='\r')
       print()
 
@@ -126,8 +122,10 @@ class CalendarApi(object):
     i = 0
     for e in existing_events:
       if time_started_event_key(e) in event_start_keys:
-        self.service.events().delete(calendarId=calendar_id,
-                                     eventId=e['id']).execute()
+        utils.retry_on_error(
+            self.service.events().delete(
+                calendarId=calendar_id,
+                eventId=e['id']).execute)
         i += 1
         print(i, end='\r')
 
@@ -137,8 +135,10 @@ class CalendarApi(object):
     else:
       for event in events:
         try:
-          response = self.service.events().insert(calendarId=calendar_id,
-                                                  body=event).execute()
+          response = utils.retry_on_error(
+              self.service.events().insert(
+                  calendarId=calendar_id,
+                  body=event).execute)
           print(f'Added event {pformat(response)}')
         except Exception as e:
           print(f'FAILED to add event {pformat(event)}')

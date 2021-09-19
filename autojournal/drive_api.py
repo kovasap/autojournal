@@ -6,6 +6,8 @@ import zipfile
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
+from . import utils
+
 
 class DriveApi(object):
 
@@ -17,9 +19,9 @@ class DriveApi(object):
     given directory.
     """
     found_files = self._get_files_for_query(
-      f"'{self.get_folder_id(directory)}' in parents")
+        f"'{self.get_folder_id(directory)}' in parents")
     return {file.get('name'): self.get_file_lines(file.get('id'))
-        for file in found_files}
+            for file in found_files}
 
   def read_all_spreadsheet_data(self, directory, only=None):
     """Gets all spreadsheet data from directory.
@@ -28,10 +30,10 @@ class DriveApi(object):
     the only set.
     """
     found_files = self._get_files_for_query(
-      f"'{self.get_folder_id(directory)}' in parents")
+        f"'{self.get_folder_id(directory)}' in parents")
     return {file.get('name'): self.get_spreadsheet_data(file)
-        for file in found_files
-        if only is None or file.get('name') in only}
+            for file in found_files
+            if only is None or file.get('name') in only}
 
   def get_spreadsheet_data(self, file):
     if file['mimeType'] not in {
@@ -50,13 +52,13 @@ class DriveApi(object):
     dl_file = self.download_file(file.get('id'), **get_media_kwargs)
     if file['mimeType'] == 'application/zip':
       dl_file = zipfile.ZipFile(dl_file).open(
-        op.splitext(file.get('name'))[0] + '.csv')
+          op.splitext(file.get('name'))[0] + '.csv')
     textio = io.TextIOWrapper(dl_file, encoding='utf-8')
     return [row for row in csv.DictReader(textio, delimiter=delimiter)]
 
   def download_file(self, file_id, **get_media_kwargs):
     request = self.service.files().get_media(
-      fileId=file_id, **get_media_kwargs)
+        fileId=file_id, **get_media_kwargs)
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
     done = False
@@ -74,13 +76,13 @@ class DriveApi(object):
           f.write(self.download_file(file['id']).getbuffer())
 
   def get_file_lines(self, file_id):
-    return [l.decode('utf-8')
-        for l in self.download_file(file_id).readlines()]
+    return [ln.decode('utf-8')
+            for ln in self.download_file(file_id).readlines()]
 
   def get_folder_id(self, folder_name):
     found_files = self._get_files_for_query(
-      f"mimeType = 'application/vnd.google-apps.folder' and "
-      f"name = '{folder_name}'")
+        f"mimeType = 'application/vnd.google-apps.folder' and "
+        f"name = '{folder_name}'")
     assert len(found_files) == 1, found_files
     return found_files[0].get('id')
 
@@ -88,11 +90,12 @@ class DriveApi(object):
     page_token = None
     found_files = []
     while True:
-      response = self.service.files().list(
-        q=query,
-        spaces='drive',
-        fields='nextPageToken, files(id, name, mimeType)',
-        pageToken=page_token).execute()
+      response = utils.retry_on_error(
+          self.service.files().list(
+              q=query,
+              spaces='drive',
+              fields='nextPageToken, files(id, name, mimeType)',
+              pageToken=page_token).execute)
       found_files += response.get('files', [])
       page_token = response.get('nextPageToken', None)
       if page_token is None:
@@ -103,6 +106,6 @@ class DriveApi(object):
 if __name__ == "__main__":
   import credentials
   creds = credentials.get_credentials([
-    # If modifying scopes, delete the file token.pickle.
-    'https://www.googleapis.com/auth/drive.readonly'])
+      # If modifying scopes, delete the file token.pickle.
+      'https://www.googleapis.com/auth/drive.readonly'])
   drive_api = DriveApi(creds)
