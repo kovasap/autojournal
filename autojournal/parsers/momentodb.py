@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Dict, List
+from typing import List
 
 from ..data_model import Event
 
 
-def parse_nomie(data_by_fname) -> List[Event]:
+def parse_momentodb(data_by_fname) -> List[Event]:
   events = []
   for fname, data in data_by_fname.items():
     if not fname.startswith('n-'):

@@ -49,7 +49,8 @@ class DriveApi(object):
       get_media_kwargs['mimeType'] = 'text/csv'
       # get_media_kwargs['exportFormat'] = 'csv'
       # get_media_kwargs['gid'] = '0'
-    dl_file = self.download_file(file.get('id'), **get_media_kwargs)
+    dl_file = utils.retry_on_error(
+        lambda: self.download_file(file.get('id'), **get_media_kwargs))
     if file['mimeType'] == 'application/zip':
       dl_file = zipfile.ZipFile(dl_file).open(
           op.splitext(file.get('name'))[0] + '.csv')
