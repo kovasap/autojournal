@@ -2,10 +2,12 @@ import time
 from typing import Dict
 from datetime import datetime, timedelta
 from dateutil import tz
+import socket
 
 
 def retry_on_error(
-    function, errors=(BrokenPipeError, ConnectionResetError, ),
+    function,
+    errors=(BrokenPipeError, ConnectionResetError, socket.timeout),
     sleep_time_secs=3,
     num_retries=5):
   last_error = None
