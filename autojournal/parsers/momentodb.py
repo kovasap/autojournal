@@ -7,8 +7,6 @@ from ..data_model import Event
 def parse_momentodb(data_by_fname) -> List[Event]:
   events = []
   for fname, data in data_by_fname.items():
-    if not fname.startswith('n-'):
-      continue
     for line in data:
       print(line)
       for key, val in line.items():

@@ -172,7 +172,7 @@ def main():
     cal_api_instance.add_events(calendars['nomie'], nomie_events,
                                 **cal_mod_args)
 
-  if 'all' in args.update or 'momentodb' in args.update:
+  if 'all' in args.update or 'momento' in args.update:
     momento_data = drive_api_instance.read_all_spreadsheet_data('momentodb')
     momento_events = [
         e.to_calendar_event() for e in momentodb.parse_momentodb(momento_data)]

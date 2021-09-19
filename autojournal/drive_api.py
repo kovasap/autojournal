@@ -38,28 +38,29 @@ class DriveApi(object):
   def get_spreadsheet_data(self, file):
     if file['mimeType'] not in {
         'text/comma-separated-values', 'text/csv', 'application/zip',
-        'text/tab-separated-values'}:
+        'text/tab-separated-values', 'application/vnd.google-apps.spreadsheet'}:
       print(f'File {file} not of supported type.')
       return []
+    if file['mimeType'] == 'application/vnd.google-apps.spreadsheet':
+      dl_file = self.download_file(file.get('id'), export_mime_type='text/csv')
+    elif file['mimeType'] == 'application/zip':
+      dl_file = zipfile.ZipFile(dl_file).open(
+          op.splitext(file.get('name'))[0] + '.csv')
+    else:
+      dl_file = self.download_file(file.get('id'))
+    textio = io.TextIOWrapper(dl_file, encoding='utf-8')
     delimiter = ','
     if file['mimeType'] == 'text/tab-separated-values':
       delimiter = '\t'
-    get_media_kwargs = {}
-    if file['mimeType'] == 'application/vnd.google-apps.spreadsheet':
-      get_media_kwargs['mimeType'] = 'text/csv'
-      # get_media_kwargs['exportFormat'] = 'csv'
-      # get_media_kwargs['gid'] = '0'
-    dl_file = self.download_file(file.get('id'), **get_media_kwargs)
-    if file['mimeType'] == 'application/zip':
-      dl_file = zipfile.ZipFile(dl_file).open(
-          op.splitext(file.get('name'))[0] + '.csv')
-    textio = io.TextIOWrapper(dl_file, encoding='utf-8')
     return [row for row in csv.DictReader(textio, delimiter=delimiter)]
 
-  def download_file(self, file_id, **get_media_kwargs):
+  def download_file(self, file_id, export_mime_type=None):
     def _download():
-      request = self.service.files().get_media(
-          fileId=file_id, **get_media_kwargs)
+      if export_mime_type:
+        request = self.service.files().export_media(
+            fileId=file_id, mimeType=export_mime_type)
+      else:
+        request = self.service.files().get_media(fileId=file_id)
       fh = io.BytesIO()
       downloader = MediaIoBaseDownload(fh, request)
       done = False
