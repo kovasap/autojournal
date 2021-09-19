@@ -11,10 +11,15 @@ def parse_momentodb(data_by_fname) -> List[Event]:
       continue
     for line in data:
       print(line)
-      events.append(Event(
-          summary=f'{line["value"]} {line["tracker"]}',
-          description=str(line),
-          timestamp=datetime.strptime(
-              line['start'], '%Y-%m-%dT%H:%M:%S.%f'),
-          data={line['tracker']: line['value']}))
+      for key, val in line.items():
+        if key in {'Creation', '__id'}:
+          continue
+        if val in {'', None, 'FALSE'}:
+          continue
+        events.append(Event(
+            summary=f'{key} {val}' if val != 'TRUE' else key,
+            description=str(line),
+            timestamp=datetime.strptime(
+                line['Creation'], '%m/%d/%Y %H:%M:%S'),
+            data={key: val}))
   return events

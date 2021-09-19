@@ -49,8 +49,7 @@ class DriveApi(object):
       get_media_kwargs['mimeType'] = 'text/csv'
       # get_media_kwargs['exportFormat'] = 'csv'
       # get_media_kwargs['gid'] = '0'
-    dl_file = utils.retry_on_error(
-        lambda: self.download_file(file.get('id'), **get_media_kwargs))
+    dl_file = self.download_file(file.get('id'), **get_media_kwargs)
     if file['mimeType'] == 'application/zip':
       dl_file = zipfile.ZipFile(dl_file).open(
           op.splitext(file.get('name'))[0] + '.csv')
@@ -58,16 +57,18 @@ class DriveApi(object):
     return [row for row in csv.DictReader(textio, delimiter=delimiter)]
 
   def download_file(self, file_id, **get_media_kwargs):
-    request = self.service.files().get_media(
-        fileId=file_id, **get_media_kwargs)
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while done is False:
-      status, done = downloader.next_chunk()
-      # print("Downloading file %d%%." % int(status.progress() * 100))
-    fh.seek(0)
-    return fh
+    def _download():
+      request = self.service.files().get_media(
+          fileId=file_id, **get_media_kwargs)
+      fh = io.BytesIO()
+      downloader = MediaIoBaseDownload(fh, request)
+      done = False
+      while done is False:
+        status, done = downloader.next_chunk()
+        # print("Downloading file %d%%." % int(status.progress() * 100))
+      fh.seek(0)
+      return fh
+    return utils.retry_on_error(_download)
 
   def download_file_to_disk(self, folder, filename, filepath):
     folder_id = self.get_folder_id(folder)
