@@ -43,11 +43,11 @@ class DriveApi(object):
       return []
     if file['mimeType'] == 'application/vnd.google-apps.spreadsheet':
       dl_file = self.download_file(file.get('id'), export_mime_type='text/csv')
-    elif file['mimeType'] == 'application/zip':
-      dl_file = zipfile.ZipFile(dl_file).open(
-          op.splitext(file.get('name'))[0] + '.csv')
     else:
       dl_file = self.download_file(file.get('id'))
+    if file['mimeType'] == 'application/zip':
+      dl_file = zipfile.ZipFile(dl_file).open(
+          op.splitext(file.get('name'))[0] + '.csv')
     textio = io.TextIOWrapper(dl_file, encoding='utf-8')
     delimiter = ','
     if file['mimeType'] == 'text/tab-separated-values':
