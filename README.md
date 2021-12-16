@@ -69,6 +69,10 @@ https://colab.research.google.com/drive/1vKOHtu1cLgky6I_4W-aFBqq6e6Hb4qBA
 Could use ML to judge mode of travel better like these guys:
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5620731/.
 
+### Emailed Report
+
+Generate a report with the timeline that is already implemented, plus something like https://stackoverflow.com/questions/21604997/how-to-find-significant-correlations-in-a-large-dataset.  Email this regularly.
+
 ### Frontend Idea
 
 Create a histogram-timeline using
