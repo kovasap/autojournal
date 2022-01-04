@@ -8,7 +8,11 @@ desired.
 
 Autojournal fundamentally moves personal data around between different services.
 The most supported place for data to end up is Google calendar.
-Here are some examples of what that looks like:
+Here are some examples of what that looks like.
+Each block on the calendar corresponds to a single "event" that I've tracked. For
+sleep, this would be time asleep. For location, this would be time at a specific
+location, or time travelling. For computer usage, this would be active time interacting
+with a computer (not AFK).
 
 Just the location events from a trip I went on:
 
