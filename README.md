@@ -6,7 +6,11 @@ desired.
 
 ## Examples
 
-Just location events from a trip I went on:
+Autojournal fundamentally moves personal data around between different services.
+The most supported place for data to end up is Google calendar.
+Here are some examples of what that looks like:
+
+Just the location events from a trip I went on:
 
 ![travelling](example_location_calendar.png?raw=true "Locations")
 
