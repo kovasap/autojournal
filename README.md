@@ -14,6 +14,9 @@ sleep, this would be time asleep. For location, this would be time at a specific
 location, or time travelling. For computer usage, this would be active time interacting
 with a computer (not AFK).
 
+An excellent example of someone else doing exactly what autojournal is trying to do
+can be found at https://miguelrochefort.com/blog/calendar/.
+
 Just the location events from a trip I went on:
 
 ![travelling](example_location_calendar.png?raw=true "Locations")
