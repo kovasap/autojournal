@@ -174,6 +174,10 @@ should be able to ssh into the instance with:
 gcloud compute ssh kovas
 ```
 
+Currently a free tier instance does not have enough memory to support running this tool.  I might be able to
+fix this by reducing memory usage by not keeping all events in memeory at once,
+but that would require some serious code changes.
+
 ## Other Inspiration
 
 https://vimeo.com/99571921
