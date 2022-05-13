@@ -183,3 +183,5 @@ but that would require some serious code changes.
 https://vimeo.com/99571921
 
 https://karpathy.github.io/2014/08/03/quantifying-productivity/
+
+https://www.smartertime.com/index.html
