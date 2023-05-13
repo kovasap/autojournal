@@ -20,13 +20,19 @@ from .parsers import activitywatch
 from .parsers import google_fit
 from .data_model import Event
 
-METRIC_COLORS = px.colors.cyclical.mrybm * 2
-# METRIC_COLORS = px.colors.sequential.Electric * 2
+
+def create_altair_report(
+    data: Iterable[Event], metrics_to_plot: List[str], html_name: str,
+):
+  pass
 
 
 # Based on https://plotly.com/python/range-slider/.
-def create_plot(
-    data: Iterable[Event], metrics_to_plot: List[str], html_name: str) -> str:
+def create_plotly_report(
+    data: Iterable[Event], metrics_to_plot: List[str], html_name: str,
+    metric_colors=px.colors.cyclical.mrybm * 2,
+    # metric_colors=px.colors.sequential.Electric * 2,
+):
   # Create figure
   fig = go.Figure()
 
@@ -64,6 +70,7 @@ def create_plot(
             for x0, x1 in asleep_periods
         ]
     )
+    # COMMENT THIS OUT TO USE BAR CHARTS TO VISUALIZE SLEEP!
     del metrics_to_data['asleep']
 
   axis_domain_size = 1.0 / len(metrics_to_data)
@@ -74,40 +81,58 @@ def create_plot(
     #   print(pt.data['Day'], pt.data['Food Name'], pt.data['Energy (kcal)'])
     y_data = [p.data[m] for p in pts]
     y_str = '' if i == 0 else str(i + 1)
-    fig.add_trace(
-        go.Scatter(
-            x=[p.timestamp for p in pts],
-            y=y_data,
-            name=m,
-            text=[p.description for p in pts],
-            yaxis=f'y{y_str}',
-            marker=dict(color=METRIC_COLORS[i]),
-        ))
+
+    if m == 'asleep':
+      pass
+      fig.add_trace(
+          go.Bar(x=[p.timestamp for p in pts][:-1],
+                 # base=[p.timestamp for p in pts][1:],
+                 y=[1 if p.data['asleep'] else 2 for p in pts],
+                 yaxis=f'y{y_str}',
+                 marker=dict(color=metric_colors[i]),
+                 showlegend=False,
+                 name=m,
+                 hovertemplate='<img src="https://kovasap.github.io/crow.png">'))
+    else:
+      fig.add_trace(
+          go.Scatter(
+              x=[p.timestamp for p in pts],
+              y=y_data,
+              name=m,
+              text=[p.description for p in pts],
+              yaxis=f'y{y_str}',
+              marker=dict(color=metric_colors[i], size=8),
+              hoverinfo='name+x+text',
+              # https://plotly.com/python/line-charts/
+              line=dict(width=1.5, shape='hv'),
+              mode='lines+markers',
+              showlegend=False,
+          ))
     y_axes[f'yaxis{y_str}'] = dict(
         anchor='x',
         autorange=True,
         domain=[axis_domain_size * i, axis_domain_size * (i + 1)],
-        linecolor=METRIC_COLORS[i],
+        linecolor=metric_colors[i],
         mirror=True,
         range=[min(y_data), max(y_data)],
         showline=True,
         side='right',
-        tickfont={'color': METRIC_COLORS[i]},
+        tickfont={'color': metric_colors[i]},
         tickmode='auto',
         ticks='',
         title=m,
-        titlefont={'color': METRIC_COLORS[i]},
+        titlefont={'color': metric_colors[i]},
         type='linear',
         zeroline=False)
 
   # style all the traces
-  fig.update_traces(
-      hoverinfo='name+x+text',
-      # https://plotly.com/python/line-charts/
-      line=dict(width=1.5, shape='hv'),
-      marker={'size': 8},
-      mode='lines+markers',
-      showlegend=False)
+  # fig.update_traces(
+  #     hoverinfo='name+x+text',
+  #     # https://plotly.com/python/line-charts/
+  #     line=dict(width=1.5, shape='hv'),
+  #     marker={'size': 8},
+  #     mode='lines+markers',
+  #     showlegend=False)
 
   # Update axes
   fig.update_layout(xaxis=dict(
@@ -132,7 +157,8 @@ def create_plot(
       margin=dict(t=50, b=50),
   )
 
-  fig.write_html(html_name)
+  with open('autojournal/image_hover.js', 'r') as f:
+    fig.write_html(html_name, post_script=''.join(f.readlines()))
 
 
 def parse_date(s: Union[str, datetime]) -> datetime:
@@ -221,20 +247,23 @@ def main(start_date: str, end_date: str, use_cache: bool):
 
     # If events don't have a timezone, assume DEFAULT_TIMEZONE.
     # Then, shift all times to the DEFAULT_TIMEZONE.
+    print('Fixing timestamps...')
     for e in event_data:
       if e.timestamp.tzinfo is None:
         e.timestamp = e.timestamp.replace(tzinfo=DEFAULT_TIMEZONE)
       e.timestamp = e.timestamp.astimezone(tz=DEFAULT_TIMEZONE)
 
+  print('Writing cache file...')
   with open('report_data_cache.pickle', 'wb') as f:
     pickle.dump(event_data, f)
 
   # Filter events by date
+  print('Filtering events to specified date range...')
   event_data = [e for e in event_data if start_date < e.timestamp < end_date]
   event_data = sorted(event_data, key=lambda e: e.timestamp)
 
   print('Making plot...')
-  create_plot(event_data, [
+  create_plotly_report(event_data, [
       'Carbs (g)', 'Sugars (g)', 'Fat (g)', 'Fiber (g)',
       'Monounsaturated (g)', 'Polyunsaturated (g)', 'Saturated (g)',
       'Sodium (mg)',
