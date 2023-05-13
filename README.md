@@ -47,6 +47,11 @@ source $(poetry env info --path)/bin/activate
 
 to get into the poetry virtualenv to run scripts.
 
+You'll also need to get a `credentials.json` file from
+https://developers.google.com/calendar/quickstart/python#step_1_turn_on_the.
+If you already have a client ID, you can just press the download button and save
+the file as `credentials.json`.
+
 To run once a day at 10pm, run `crontab -e` and add this snippet (assuming you
 cloned autojournal into your home directory ~/):
 

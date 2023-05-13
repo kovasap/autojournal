@@ -169,9 +169,11 @@ def main(start_date: str, end_date: str, use_cache: bool):
     ])
     drive_api_instance = drive_api.DriveApi(creds)
     cal_api_instance = calendar_api.CalendarApi(creds)
+    print('Done setting up google APIs')
 
     event_data = []
     spreadsheet_data = {}
+    print('Getting sleep data...')
     sleep_data = cal_api_instance.get_events(
         cal_api_instance.get_calendar_id('Sleep'))
     for e in sleep_data:
@@ -187,13 +189,16 @@ def main(start_date: str, end_date: str, use_cache: bool):
           timestamp=datetime.fromisoformat(e['end']['dateTime']),
           data={'description': e.get('description', ''), 'asleep': 0},
       ))
+    print('Getting Cronometer data...')
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
         'cronometer'))
     event_data += cronometer.parse_nutrition(
         spreadsheet_data, daily_cumulative=True)
+    print('Getting Glucose data...')
     spreadsheet_data.update(drive_api_instance.read_all_spreadsheet_data(
-        'medical-records'))
+        '4-21-2021-continuous-glucose-monitoring'))
     event_data += cgm.parse_cgm(spreadsheet_data)
+    print('Getting workout data...')
     fit_data = google_fit.parse_sessions(
         drive_api_instance, 'google-fit-sessions')
     for e in fit_data:
@@ -228,6 +233,7 @@ def main(start_date: str, end_date: str, use_cache: bool):
   event_data = [e for e in event_data if start_date < e.timestamp < end_date]
   event_data = sorted(event_data, key=lambda e: e.timestamp)
 
+  print('Making plot...')
   create_plot(event_data, [
       'Carbs (g)', 'Sugars (g)', 'Fat (g)', 'Fiber (g)',
       'Monounsaturated (g)', 'Polyunsaturated (g)', 'Saturated (g)',
