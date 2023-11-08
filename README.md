@@ -4,6 +4,8 @@ Overarching goal is to provide a system that summarizes life events
 automatically, to augment your memory and allow for further analysis if
 desired.
 
+**This library is obselete, I have switched to using and developing https://github.com/kovasap/autojournal-on-gas.**
+
 ## Examples
 
 Autojournal fundamentally moves personal data around between different services.
